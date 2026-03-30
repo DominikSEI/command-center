@@ -19,6 +19,8 @@ class ProjectCreate(BaseModel):
     interval_minutes: int = 5
     expected_interval_minutes: Optional[int] = None
     alert_telegram: bool = True
+    description: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -30,6 +32,8 @@ class ProjectUpdate(BaseModel):
     expected_interval_minutes: Optional[int] = None
     alert_telegram: Optional[bool] = None
     is_active: Optional[bool] = None
+    description: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class ProjectOut(BaseModel):
@@ -42,6 +46,8 @@ class ProjectOut(BaseModel):
     expected_interval_minutes: Optional[int]
     alert_telegram: bool
     is_active: bool
+    description: Optional[str] = None
+    notes: Optional[str] = None
     current_status: Optional[str] = None
     uptime_7d: Optional[float] = None
     last_checked: Optional[datetime] = None

@@ -153,7 +153,14 @@ export default function Dashboard() {
 
       {/* Detail Drawer */}
       {selected && (
-        <ProjectDrawer project={selected} onClose={() => setSelected(null)} />
+        <ProjectDrawer
+          project={selected}
+          onClose={() => setSelected(null)}
+          onUpdated={(updated) => {
+            setProjects((prev) => prev.map((p) => p.id === updated.id ? { ...p, ...updated } : p))
+            setSelected((prev) => ({ ...prev, ...updated }))
+          }}
+        />
       )}
 
       {/* Add Modal */}

@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
-import { X, RefreshCw } from 'lucide-react'
+import { X, RefreshCw, Pencil } from 'lucide-react'
 import api from '../api'
 import StatusDot from './StatusDot'
+import EditProjectModal from './EditProjectModal'
 
 function formatDate(d) {
   if (!d) return '—'
   return new Date(d).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-export default function ProjectDrawer({ project, onClose }) {
+export default function ProjectDrawer({ project: initialProject, onClose, onUpdated }) {
+  const [project, setProject] = useState(initialProject)
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showEdit, setShowEdit] = useState(false)
 
   async function fetchLogs() {
     setLoading(true)
@@ -25,6 +28,11 @@ export default function ProjectDrawer({ project, onClose }) {
   useEffect(() => {
     fetchLogs()
   }, [project.id])
+
+  function handleUpdated(updated) {
+    setProject(updated)
+    if (onUpdated) onUpdated(updated)
+  }
 
   return (
     <>
@@ -45,9 +53,14 @@ export default function ProjectDrawer({ project, onClose }) {
               {project.cluster}
             </span>
           </div>
-          <button onClick={onClose} className="btn-ghost p-1.5">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setShowEdit(true)} className="btn-ghost p-1.5" title="Bearbeiten">
+              <Pencil size={15} />
+            </button>
+            <button onClick={onClose} className="btn-ghost p-1.5">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Meta */}
@@ -68,6 +81,18 @@ export default function ProjectDrawer({ project, onClose }) {
               <a href={project.url} target="_blank" rel="noopener noreferrer" className="text-accent text-xs hover:underline truncate block">
                 {project.url}
               </a>
+            </div>
+          )}
+          {project.description && (
+            <div className="col-span-2">
+              <span className="text-gray-500 block mb-0.5">Beschreibung</span>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap">{project.description}</p>
+            </div>
+          )}
+          {project.notes && (
+            <div className="col-span-2">
+              <span className="text-gray-500 block mb-0.5">Notizen</span>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap">{project.notes}</p>
             </div>
           )}
         </div>
@@ -120,6 +145,13 @@ export default function ProjectDrawer({ project, onClose }) {
           )}
         </div>
       </div>
+      {showEdit && (
+        <EditProjectModal
+          project={project}
+          onClose={() => setShowEdit(false)}
+          onUpdated={handleUpdated}
+        />
+      )}
     </>
   )
 }

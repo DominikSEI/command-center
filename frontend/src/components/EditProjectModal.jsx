@@ -5,17 +5,17 @@ import api from '../api'
 const CHECK_TYPES = ['http', 'ssl', 'heartbeat', 'custom_json']
 const CLUSTERS = ['Webapps', 'Bots', 'APIs', 'Infrastruktur']
 
-export default function AddProjectModal({ onClose, onCreated }) {
+export default function EditProjectModal({ project, onClose, onUpdated }) {
   const [form, setForm] = useState({
-    name: '',
-    cluster: 'Webapps',
-    check_type: 'http',
-    url: '',
-    interval_minutes: 5,
-    expected_interval_minutes: 10,
-    alert_telegram: true,
-    description: '',
-    notes: '',
+    name: project.name ?? '',
+    cluster: project.cluster ?? 'Webapps',
+    check_type: project.check_type ?? 'http',
+    url: project.url ?? '',
+    interval_minutes: project.interval_minutes ?? 5,
+    expected_interval_minutes: project.expected_interval_minutes ?? 10,
+    alert_telegram: project.alert_telegram ?? true,
+    description: project.description ?? '',
+    notes: project.notes ?? '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -31,14 +31,14 @@ export default function AddProjectModal({ onClose, onCreated }) {
     try {
       const payload = { ...form }
       if (form.check_type !== 'heartbeat') delete payload.expected_interval_minutes
-      if (!payload.url) delete payload.url
-      if (!payload.description) delete payload.description
-      if (!payload.notes) delete payload.notes
-      await api.post('/projects', payload)
-      onCreated()
+      if (!payload.url) payload.url = null
+      if (!payload.description) payload.description = null
+      if (!payload.notes) payload.notes = null
+      const res = await api.patch(`/projects/${project.id}`, payload)
+      onUpdated(res.data)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Fehler beim Erstellen')
+      setError(err.response?.data?.detail || 'Fehler beim Speichern')
     } finally {
       setLoading(false)
     }
@@ -50,7 +50,7 @@ export default function AddProjectModal({ onClose, onCreated }) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-surface-card border border-surface-border rounded-xl w-full max-w-md shadow-2xl">
           <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
-            <h2 className="font-semibold">Projekt hinzufügen</h2>
+            <h2 className="font-semibold">Projekt bearbeiten</h2>
             <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>
           </div>
 

@@ -18,6 +18,8 @@ class Project(Base):
     expected_interval_minutes = Column(Integer, nullable=True)  # für heartbeat
     alert_telegram = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
+    description = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     check_results = relationship("CheckResult", back_populates="project", cascade="all, delete-orphan")
@@ -57,6 +59,7 @@ class TrackerProject(Base):
     description = Column(Text, nullable=True)
     status = Column(String, default="idea")  # idea / in_progress / review / live
     progress_percent = Column(Integer, default=0)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
