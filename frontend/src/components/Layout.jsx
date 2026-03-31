@@ -2,6 +2,8 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Kanban,
+  CheckSquare,
+  Lightbulb,
   TrendingUp,
   Newspaper,
   Image,
@@ -13,6 +15,8 @@ import {
 const nav = [
   { to: '/monitor', icon: LayoutDashboard, label: 'Monitor' },
   { to: '/tracker', icon: Kanban, label: 'Tracker' },
+  { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
+  { to: '/ideas', icon: Lightbulb, label: 'Ideen' },
   { to: '/trading', icon: TrendingUp, label: 'Trading' },
   { to: '/briefing', icon: Newspaper, label: 'Briefing' },
   { to: '/content', icon: Image, label: 'Content' },

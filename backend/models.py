@@ -66,6 +66,35 @@ class TrackerProject(Base):
     todos = relationship("TrackerTodo", back_populates="tracker_project", cascade="all, delete-orphan")
 
 
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    tracker_project_id = Column(Integer, ForeignKey("tracker_projects.id", ondelete="SET NULL"), nullable=True)
+    bucket = Column(String, default="backlog")  # backlog | today
+    done = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    moved_to_today_at = Column(DateTime, nullable=True)
+
+    tracker_project = relationship("TrackerProject")
+
+
+class Idea(Base):
+    __tablename__ = "ideas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    body = Column(Text, nullable=True)
+    status = Column(String, default="new")  # new | reviewing | done | rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    converted_to_project_id = Column(Integer, ForeignKey("tracker_projects.id", ondelete="SET NULL"), nullable=True)
+
+    converted_project = relationship("TrackerProject", foreign_keys=[converted_to_project_id])
+
+
 class TrackerTodo(Base):
     __tablename__ = "tracker_todos"
 
