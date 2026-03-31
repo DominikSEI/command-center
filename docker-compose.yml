@@ -6,10 +6,6 @@ services:
     container_name: cc_backend
     restart: unless-stopped
     env_file: .env
-    environment:
-      - DATABASE_URL=sqlite:///./data/command_center.db
-    volumes:
-      - backend_data:/app/data
     networks:
       - internal
     healthcheck:
@@ -42,9 +38,6 @@ services:
     depends_on:
       - backend
       - frontend
-
-volumes:
-  backend_data:
 
 networks:
   internal:
