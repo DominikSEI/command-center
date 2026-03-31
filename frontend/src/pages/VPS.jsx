@@ -45,11 +45,11 @@ export default function VPS() {
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
-    const [lat, hist] = await Promise.all([
-      api.get('/vps/metrics/latest'),
+    const [cur, hist] = await Promise.all([
+      api.get('/vps/metrics/current'),
       api.get('/vps/metrics?hours=24'),
     ])
-    setLatest(lat.data)
+    setLatest(cur.data)
     const data = hist.data.reverse().map((m) => ({
       time: new Date(m.recorded_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
       CPU: m.cpu_percent,
@@ -62,7 +62,7 @@ export default function VPS() {
 
   useEffect(() => {
     fetchData()
-    const id = setInterval(fetchData, 60_000)
+    const id = setInterval(fetchData, 30_000)
     return () => clearInterval(id)
   }, [fetchData])
 

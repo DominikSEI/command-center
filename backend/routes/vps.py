@@ -1,11 +1,26 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+import psutil
 from database import get_db
 from models import VpsMetric
 from routes.deps import get_current_user
 
 router = APIRouter(prefix="/vps", tags=["vps"])
+
+
+@router.get("/metrics/current")
+def get_current_metrics(_: str = Depends(get_current_user)):
+    """Live system metrics read directly via psutil — no DB required."""
+    net = psutil.net_io_counters()
+    return {
+        "cpu_percent": psutil.cpu_percent(interval=0.5),
+        "ram_percent": psutil.virtual_memory().percent,
+        "disk_percent": psutil.disk_usage("/").percent,
+        "net_bytes_sent": net.bytes_sent,
+        "net_bytes_recv": net.bytes_recv,
+        "recorded_at": datetime.utcnow(),
+    }
 
 
 @router.get("/metrics")
