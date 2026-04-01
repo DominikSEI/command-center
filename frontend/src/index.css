@@ -1,51 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   * {
-    @apply border-surface-border;
+    border-color: theme('colors.surface.border');
   }
   body {
     @apply bg-surface text-white antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 }
 
 @layer components {
+  /* Cards */
   .card {
-    @apply bg-surface-card border border-surface-border rounded-xl p-5;
+    @apply bg-surface-card border border-surface-border rounded-2xl p-5;
+    box-shadow: theme('boxShadow.card');
   }
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-accent/30 hover:shadow-glow-sm;
+  }
+
+  /* Buttons */
   .btn-primary {
-    @apply bg-accent hover:bg-accent-hover text-white font-medium px-4 py-2 rounded-lg transition-colors;
+    @apply relative text-white font-medium px-4 py-2 rounded-xl transition-all duration-200;
+    @apply hover:opacity-90 active:scale-[0.98];
+    background: theme('backgroundImage.gradient-accent');
+    box-shadow: 0 0 16px rgba(139,92,246,0.3);
   }
   .btn-ghost {
-    @apply text-gray-400 hover:text-white hover:bg-surface-hover px-3 py-2 rounded-lg transition-colors;
+    @apply text-gray-400 hover:text-white hover:bg-surface-hover px-3 py-2 rounded-xl transition-all duration-150;
   }
-  .status-dot {
-    @apply w-2.5 h-2.5 rounded-full inline-block;
+  .btn-outline {
+    @apply text-gray-300 border border-surface-border hover:border-accent/40 hover:text-white px-3 py-2 rounded-xl transition-all duration-150;
   }
-  .status-online {
-    @apply bg-emerald-500;
+
+  /* Inputs */
+  .input {
+    @apply w-full bg-surface-raised border border-surface-border rounded-xl px-3 py-2.5 text-sm
+           focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20
+           placeholder-gray-600 transition-all duration-150;
   }
-  .status-warning {
-    @apply bg-amber-400;
+
+  /* Status dots */
+  .status-dot     { @apply w-2 h-2 rounded-full inline-block flex-shrink-0; }
+  .status-online  { @apply bg-emerald-400; box-shadow: 0 0 6px rgba(52,211,153,0.6); }
+  .status-warning { @apply bg-amber-400;  box-shadow: 0 0 6px rgba(251,191,36,0.5); }
+  .status-down    { @apply bg-red-500;    box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+  .status-unknown { @apply bg-gray-600; }
+
+  /* Gradient progress bar */
+  .progress-bar {
+    @apply w-full bg-surface-raised rounded-full overflow-hidden;
+    height: 4px;
   }
-  .status-down {
-    @apply bg-red-500;
+  .progress-bar-fill {
+    height: 4px;
+    border-radius: 9999px;
+    transition: width 0.4s ease;
   }
-  .status-unknown {
-    @apply bg-gray-500;
+
+  /* Section label */
+  .section-label {
+    @apply text-[11px] font-semibold uppercase tracking-widest text-gray-500;
+  }
+
+  /* Badge */
+  .badge {
+    @apply text-[11px] px-2 py-0.5 rounded-full border font-medium;
   }
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #2a2d3a;
-  border-radius: 3px;
-}
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1b1e2e; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #2a2e45; }

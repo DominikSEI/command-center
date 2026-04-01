@@ -11,7 +11,7 @@ function formatDate(d) {
 
 export default function ProjectDrawer({ project: initialProject, onClose, onUpdated }) {
   const [project, setProject] = useState(initialProject)
-  const [logs, setLogs] = useState([])
+  const [logs, setLogs]       = useState([])
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)
 
@@ -25,9 +25,7 @@ export default function ProjectDrawer({ project: initialProject, onClose, onUpda
     }
   }
 
-  useEffect(() => {
-    fetchLogs()
-  }, [project.id])
+  useEffect(() => { fetchLogs() }, [project.id])
 
   function handleUpdated(updated) {
     setProject(updated)
@@ -36,48 +34,50 @@ export default function ProjectDrawer({ project: initialProject, onClose, onUpda
 
   return (
     <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black/50 z-40"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={onClose} />
 
-      {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-surface-card border-l border-surface-border z-50 flex flex-col shadow-2xl">
+      <div
+        className="fixed right-0 top-0 h-full w-full max-w-lg border-l border-surface-border z-50 flex flex-col shadow-2xl"
+        style={{ background: 'linear-gradient(180deg, #0c0e17 0%, #090b13 100%)' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-surface-border">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <StatusDot status={project.current_status} />
-            <h2 className="font-semibold text-lg">{project.name}</h2>
-            <span className="text-xs bg-surface px-2 py-0.5 rounded-full text-gray-400 border border-surface-border">
+            <h2 className="font-semibold text-base truncate">{project.name}</h2>
+            <span className="badge border-surface-border text-gray-500 bg-surface-raised text-[11px] shrink-0">
               {project.cluster}
             </span>
           </div>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setShowEdit(true)} className="btn-ghost p-1.5" title="Bearbeiten">
-              <Pencil size={15} />
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={() => setShowEdit(true)} className="btn-ghost p-2" title="Bearbeiten">
+              <Pencil size={14} />
             </button>
-            <button onClick={onClose} className="btn-ghost p-1.5">
-              <X size={18} />
+            <button onClick={onClose} className="btn-ghost p-2">
+              <X size={17} />
             </button>
           </div>
         </div>
 
         {/* Meta */}
-        <div className="px-6 py-4 grid grid-cols-2 gap-4 text-sm border-b border-surface-border">
+        <div className="px-6 py-5 grid grid-cols-2 gap-4 border-b border-surface-border">
           <div>
-            <span className="text-gray-500 block mb-0.5">Typ</span>
-            <span className="font-mono text-xs bg-surface px-2 py-0.5 rounded">{project.check_type}</span>
+            <span className="text-[11px] text-gray-600 block mb-1">Typ</span>
+            <span className="font-mono text-xs bg-surface-raised px-2 py-0.5 rounded-lg text-gray-300">{project.check_type}</span>
           </div>
           <div>
-            <span className="text-gray-500 block mb-0.5">Uptime 7 Tage</span>
-            <span className={project.uptime_7d >= 99 ? 'text-emerald-400' : project.uptime_7d >= 80 ? 'text-amber-400' : 'text-red-400'}>
+            <span className="text-[11px] text-gray-600 block mb-1">Uptime 7 Tage</span>
+            <span className={`text-sm font-semibold ${
+              project.uptime_7d == null ? 'text-gray-600' :
+              project.uptime_7d >= 99  ? 'text-emerald-400' :
+              project.uptime_7d >= 80  ? 'text-amber-400' : 'text-red-400'
+            }`}>
               {project.uptime_7d != null ? `${project.uptime_7d}%` : '—'}
             </span>
           </div>
           {project.url && (
             <div className="col-span-2">
-              <span className="text-gray-500 block mb-0.5">URL</span>
+              <span className="text-[11px] text-gray-600 block mb-1">URL</span>
               <a href={project.url} target="_blank" rel="noopener noreferrer" className="text-accent text-xs hover:underline truncate block">
                 {project.url}
               </a>
@@ -85,59 +85,55 @@ export default function ProjectDrawer({ project: initialProject, onClose, onUpda
           )}
           {project.description && (
             <div className="col-span-2">
-              <span className="text-gray-500 block mb-0.5">Beschreibung</span>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap">{project.description}</p>
+              <span className="text-[11px] text-gray-600 block mb-1">Beschreibung</span>
+              <p className="text-sm text-gray-400 leading-relaxed">{project.description}</p>
             </div>
           )}
           {project.notes && (
             <div className="col-span-2">
-              <span className="text-gray-500 block mb-0.5">Notizen</span>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap">{project.notes}</p>
+              <span className="text-[11px] text-gray-600 block mb-1">Notizen</span>
+              <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{project.notes}</p>
             </div>
           )}
         </div>
 
         {/* Logs */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-300">Fehlerlog (letzte 50)</h3>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="flex items-center justify-between mb-4">
+            <span className="section-label">Check-Log (letzte 50)</span>
             <button onClick={fetchLogs} className="btn-ghost p-1.5">
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <RefreshCw size={13} className={loading ? 'animate-spin text-accent' : ''} />
             </button>
           </div>
 
           {loading ? (
-            <div className="text-gray-500 text-sm">Lade...</div>
+            <div className="text-gray-600 text-sm">Lade…</div>
           ) : logs.length === 0 ? (
-            <div className="text-gray-500 text-sm">Keine Einträge</div>
+            <div className="text-gray-600 text-sm">Keine Einträge</div>
           ) : (
-            <div className="space-y-2">
-              {logs.map((log) => (
+            <div className="space-y-1.5">
+              {logs.map(log => (
                 <div
                   key={log.id}
-                  className={`rounded-lg px-3 py-2.5 text-xs border ${
+                  className={`rounded-xl px-3 py-2.5 text-xs border ${
                     log.status === 'online'
-                      ? 'border-emerald-900/40 bg-emerald-950/20'
+                      ? 'border-emerald-900/30 bg-emerald-950/15'
                       : log.status === 'warning'
-                      ? 'border-amber-900/40 bg-amber-950/20'
-                      : 'border-red-900/40 bg-red-950/20'
+                      ? 'border-amber-900/30 bg-amber-950/15'
+                      : 'border-red-900/30 bg-red-950/15'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <StatusDot status={log.status} />
                       <span className="font-medium capitalize">{log.status}</span>
-                      {log.status_code && (
-                        <span className="text-gray-500">HTTP {log.status_code}</span>
-                      )}
-                      {log.response_time_ms && (
-                        <span className="text-gray-500">{Math.round(log.response_time_ms)}ms</span>
-                      )}
+                      {log.status_code && <span className="text-gray-500">HTTP {log.status_code}</span>}
+                      {log.response_time_ms && <span className="text-gray-500">{Math.round(log.response_time_ms)}ms</span>}
                     </div>
-                    <span className="text-gray-500 shrink-0">{formatDate(log.checked_at)}</span>
+                    <span className="text-gray-600 shrink-0">{formatDate(log.checked_at)}</span>
                   </div>
                   {log.error_message && (
-                    <p className="mt-1 text-gray-400 font-mono">{log.error_message}</p>
+                    <p className="mt-1 text-gray-500 font-mono text-[11px]">{log.error_message}</p>
                   )}
                 </div>
               ))}
@@ -145,6 +141,7 @@ export default function ProjectDrawer({ project: initialProject, onClose, onUpda
           )}
         </div>
       </div>
+
       {showEdit && (
         <EditProjectModal
           project={project}

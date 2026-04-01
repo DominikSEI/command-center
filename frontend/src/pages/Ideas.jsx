@@ -3,22 +3,22 @@ import { Plus, Trash2, X, Lightbulb, ArrowRight } from 'lucide-react'
 import api from '../api'
 
 const STATUS_META = {
-  new:       { label: 'Neu',         cls: 'text-gray-400 bg-surface border-surface-border' },
-  reviewing: { label: 'In Prüfung',  cls: 'text-amber-400 bg-amber-950/30 border-amber-900/40' },
-  done:      { label: 'Umgesetzt',   cls: 'text-emerald-400 bg-emerald-950/30 border-emerald-900/40' },
-  rejected:  { label: 'Verworfen',   cls: 'text-red-400 bg-red-950/30 border-red-900/40' },
+  new:       { label: 'Neu',         badge: 'text-gray-400 bg-surface-raised border-surface-border' },
+  reviewing: { label: 'In Prüfung',  badge: 'text-amber-400 bg-amber-950/30 border-amber-900/40' },
+  done:      { label: 'Umgesetzt',   badge: 'text-emerald-400 bg-emerald-950/30 border-emerald-900/40' },
+  rejected:  { label: 'Verworfen',   badge: 'text-red-400 bg-red-950/30 border-red-900/40' },
 }
 
 function formatDate(d) {
   return new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-/* ── Add Idea Modal ──────────────────────────────────────── */
+/* ── Add Modal ───────────────────────────────────────────── */
 
 function AddIdeaModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ title: '', body: '' })
+  const [form, setForm]     = useState({ title: '', body: '' })
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]   = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -39,41 +39,45 @@ function AddIdeaModal({ onClose, onCreated }) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-surface-card border border-surface-border rounded-xl w-full max-w-sm shadow-2xl">
+        <div
+          className="w-full max-w-sm rounded-2xl border border-surface-border shadow-2xl"
+          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+        >
           <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
-            <h2 className="font-semibold">Neue Idee</h2>
-            <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>
+            <h2 className="font-semibold text-sm">Neue Idee</h2>
+            <button onClick={onClose} className="btn-ghost p-1.5"><X size={15} /></button>
           </div>
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Titel</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Titel</label>
               <input
                 value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                className="input"
                 required
                 autoFocus
+                placeholder="Ideen-Titel…"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Beschreibung</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Beschreibung</label>
               <textarea
                 value={form.body}
-                onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
                 rows={4}
-                className="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent resize-none"
+                className="input resize-none"
                 placeholder="Was steckt hinter der Idee?"
               />
             </div>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            <div className="flex gap-2">
-              <button type="button" onClick={onClose} className="flex-1 btn-ghost border border-surface-border py-2">
+            {error && <p className="text-red-400 text-xs">{error}</p>}
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={onClose} className="flex-1 btn-outline text-sm py-2.5">
                 Abbrechen
               </button>
-              <button type="submit" disabled={loading} className="flex-1 btn-primary py-2 disabled:opacity-50">
-                {loading ? 'Speichern...' : 'Speichern'}
+              <button type="submit" disabled={loading} className="flex-1 btn-primary text-sm py-2.5 disabled:opacity-60">
+                {loading ? 'Speichern…' : 'Speichern'}
               </button>
             </div>
           </form>
@@ -87,37 +91,35 @@ function AddIdeaModal({ onClose, onCreated }) {
 
 function IdeaCard({ idea, onStatusChange, onConvert, onDelete }) {
   const [converting, setConverting] = useState(false)
-  const meta = STATUS_META[idea.status] ?? STATUS_META.new
+  const meta        = STATUS_META[idea.status] ?? STATUS_META.new
   const isConverted = !!idea.converted_to_project_id
+  const isRejected  = idea.status === 'rejected'
 
   async function handleConvert() {
     if (!confirm(`"${idea.title}" in ein Tracker-Projekt umwandeln?`)) return
     setConverting(true)
-    try {
-      await onConvert(idea.id)
-    } finally {
-      setConverting(false)
-    }
+    try { await onConvert(idea.id) } finally { setConverting(false) }
   }
 
   return (
-    <div className={`card flex flex-col gap-3 ${idea.status === 'rejected' ? 'opacity-60' : ''}`}>
+    <div
+      className={`rounded-2xl border border-surface-border p-5 flex flex-col gap-3 transition-all duration-200 hover:border-accent/20 ${isRejected ? 'opacity-50' : ''}`}
+      style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <h3 className={`font-medium text-sm leading-snug flex-1 ${idea.status === 'rejected' ? 'line-through text-gray-500' : ''}`}>
+        <h3 className={`font-medium text-sm leading-snug flex-1 ${isRejected ? 'line-through text-gray-500' : ''}`}>
           {idea.title}
         </h3>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <select
-            value={idea.status}
-            onChange={(e) => onStatusChange(idea.id, e.target.value)}
-            className={`text-xs px-2 py-0.5 rounded-full border cursor-pointer bg-transparent ${meta.cls}`}
-          >
-            {Object.entries(STATUS_META).map(([v, { label }]) => (
-              <option key={v} value={v} className="bg-surface-card text-white">{label}</option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={idea.status}
+          onChange={e => onStatusChange(idea.id, e.target.value)}
+          className={`badge cursor-pointer bg-transparent shrink-0 ${meta.badge}`}
+        >
+          {Object.entries(STATUS_META).map(([v, { label }]) => (
+            <option key={v} value={v} className="bg-surface-card text-white">{label}</option>
+          ))}
+        </select>
       </div>
 
       {/* Body */}
@@ -126,29 +128,27 @@ function IdeaCard({ idea, onStatusChange, onConvert, onDelete }) {
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between gap-2 pt-1 border-t border-surface-border mt-auto">
-        <span className="text-xs text-gray-600">{formatDate(idea.created_at)}</span>
-
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-surface-border mt-auto">
+        <span className="text-[11px] text-gray-600">{formatDate(idea.created_at)}</span>
         <div className="flex items-center gap-1">
           {isConverted ? (
-            <span className="text-xs text-emerald-600 flex items-center gap-1">
+            <span className="text-[11px] text-emerald-600 flex items-center gap-1">
               <Lightbulb size={11} />
               {idea.converted_project_name ?? 'Im Tracker'}
             </span>
-          ) : idea.status !== 'rejected' && (
+          ) : !isRejected && (
             <button
               onClick={handleConvert}
               disabled={converting}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-accent px-2 py-1 rounded transition-colors disabled:opacity-40"
-              title="In Tracker-Projekt umwandeln"
+              className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-accent px-2 py-1 rounded-lg transition-colors disabled:opacity-40"
             >
-              <ArrowRight size={12} />
+              <ArrowRight size={11} />
               Tracker
             </button>
           )}
           <button
             onClick={() => onDelete(idea.id)}
-            className="text-gray-600 hover:text-red-400 p-1 rounded transition-colors"
+            className="text-gray-700 hover:text-red-400 p-1.5 rounded-lg transition-colors"
           >
             <Trash2 size={12} />
           </button>
@@ -161,7 +161,7 @@ function IdeaCard({ idea, onStatusChange, onConvert, onDelete }) {
 /* ── Main Page ───────────────────────────────────────────── */
 
 export default function Ideas() {
-  const [ideas, setIdeas] = useState([])
+  const [ideas, setIdeas]   = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [filter, setFilter] = useState('all')
@@ -177,42 +177,43 @@ export default function Ideas() {
 
   useEffect(() => { fetchIdeas() }, [fetchIdeas])
 
-  function handleCreated(idea) {
-    setIdeas((prev) => [idea, ...prev])
-  }
-
   async function handleStatusChange(id, status) {
     const res = await api.patch(`/ideas/${id}`, { status })
-    setIdeas((prev) => prev.map((i) => i.id === id ? res.data : i))
+    setIdeas(prev => prev.map(i => i.id === id ? res.data : i))
   }
 
   async function handleConvert(id) {
     const res = await api.post(`/ideas/${id}/convert`)
-    setIdeas((prev) => prev.map((i) => i.id === id ? res.data : i))
+    setIdeas(prev => prev.map(i => i.id === id ? res.data : i))
   }
 
   async function handleDelete(id) {
     if (!confirm('Idee löschen?')) return
     await api.delete(`/ideas/${id}`)
-    setIdeas((prev) => prev.filter((i) => i.id !== id))
+    setIdeas(prev => prev.filter(i => i.id !== id))
   }
 
-  const filtered = filter === 'all' ? ideas : ideas.filter((i) => i.status === filter)
-  const counts = Object.fromEntries(Object.keys(STATUS_META).map((s) => [s, ideas.filter((i) => i.status === s).length]))
+  const counts   = Object.fromEntries(Object.keys(STATUS_META).map(s => [s, ideas.filter(i => i.status === s).length]))
+  const filtered = filter === 'all' ? ideas : ideas.filter(i => i.status === filter)
+
+  const filterTabs = [
+    { key: 'all', label: 'Alle', count: ideas.length },
+    ...Object.entries(STATUS_META).map(([key, { label }]) => ({ key, label, count: counts[key] })).filter(t => t.count > 0),
+  ]
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-8 space-y-8 max-w-7xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Ideen</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Ideen</h1>
           {!loading && (
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-500 mt-1">
               {ideas.length} gesamt · {counts.new} neu · {counts.done} umgesetzt
             </p>
           )}
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-1.5 text-sm">
+        <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2 text-sm">
           <Plus size={15} />
           Idee
         </button>
@@ -220,24 +221,18 @@ export default function Ideas() {
 
       {/* Filter Tabs */}
       {!loading && ideas.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap">
-          <button
-            onClick={() => setFilter('all')}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-              filter === 'all' ? 'border-accent/50 text-accent bg-accent/10' : 'border-surface-border text-gray-500 hover:text-white'
-            }`}
-          >
-            Alle ({ideas.length})
-          </button>
-          {Object.entries(STATUS_META).map(([key, { label }]) => counts[key] > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {filterTabs.map(tab => (
             <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                filter === key ? 'border-accent/50 text-accent bg-accent/10' : 'border-surface-border text-gray-500 hover:text-white'
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`text-xs px-3 py-1.5 rounded-xl border transition-all duration-150 ${
+                filter === tab.key
+                  ? 'border-accent/40 text-accent bg-accent/10'
+                  : 'border-surface-border text-gray-500 hover:text-gray-200 hover:bg-surface-raised'
               }`}
             >
-              {label} ({counts[key]})
+              {tab.label} <span className="opacity-60 ml-1">{tab.count}</span>
             </button>
           ))}
         </div>
@@ -245,11 +240,14 @@ export default function Ideas() {
 
       {/* Content */}
       {loading ? (
-        <div className="text-gray-500">Lade...</div>
+        <div className="text-gray-600 text-sm">Lade…</div>
       ) : ideas.length === 0 ? (
-        <div className="card text-center py-16 text-gray-500">
-          <Lightbulb size={32} className="mx-auto mb-3 text-gray-700" />
-          <p className="mb-3">Noch keine Ideen erfasst.</p>
+        <div
+          className="rounded-2xl border border-surface-border text-center py-20 text-gray-500"
+          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+        >
+          <Lightbulb size={36} className="mx-auto mb-3 text-gray-700" />
+          <p className="mb-4">Noch keine Ideen erfasst.</p>
           <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">
             Erste Idee aufschreiben
           </button>
@@ -258,7 +256,7 @@ export default function Ideas() {
         <div className="text-gray-600 text-sm">Keine Ideen mit diesem Filter.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((idea) => (
+          {filtered.map(idea => (
             <IdeaCard
               key={idea.id}
               idea={idea}
@@ -271,7 +269,7 @@ export default function Ideas() {
       )}
 
       {showAdd && (
-        <AddIdeaModal onClose={() => setShowAdd(false)} onCreated={handleCreated} />
+        <AddIdeaModal onClose={() => setShowAdd(false)} onCreated={idea => setIdeas(prev => [idea, ...prev])} />
       )}
     </div>
   )

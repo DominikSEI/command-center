@@ -6,15 +6,30 @@ export default {
     extend: {
       colors: {
         surface: {
-          DEFAULT: '#0f1117',
-          card: '#1a1d27',
-          border: '#2a2d3a',
-          hover: '#22263a',
+          DEFAULT: '#07080f',
+          card:    '#0c0e17',
+          raised:  '#11131e',
+          border:  '#1b1e2e',
+          hover:   '#13162a',
         },
         accent: {
-          DEFAULT: '#6366f1',
-          hover: '#4f52d4',
+          DEFAULT: '#8b5cf6',
+          hover:   '#7c3aed',
+          blue:    '#3b82f6',
+          glow:    'rgba(139,92,246,0.18)',
         },
+      },
+      backgroundImage: {
+        'gradient-accent': 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
+        'gradient-card':   'linear-gradient(160deg, rgba(139,92,246,0.06) 0%, rgba(59,130,246,0.03) 100%)',
+      },
+      boxShadow: {
+        'glow':    '0 0 24px rgba(139,92,246,0.18)',
+        'glow-sm': '0 0 12px rgba(139,92,246,0.12)',
+        'card':    '0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
   },
