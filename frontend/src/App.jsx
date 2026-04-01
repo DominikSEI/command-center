@@ -6,6 +6,7 @@ import Tracker from './pages/Tracker'
 import Tasks from './pages/Tasks'
 import Ideas from './pages/Ideas'
 import Trading from './pages/Trading'
+import Notes from './pages/Notes'
 import Briefing from './pages/Briefing'
 import Content from './pages/Content'
 import VPS from './pages/VPS'
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="briefing" element={<Briefing />} />
         <Route path="content" element={<Content />} />
         <Route path="vps" element={<VPS />} />
+        <Route path="notes" element={<Notes />} />
       </Route>
     </Routes>
   )

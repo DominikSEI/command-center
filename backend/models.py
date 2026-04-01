@@ -95,6 +95,18 @@ class Idea(Base):
     converted_project = relationship("TrackerProject", foreign_keys=[converted_to_project_id])
 
 
+class Note(Base):
+    __tablename__ = "notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    body = Column(Text, nullable=True)
+    category = Column(String, default="sonstiges")  # ki_news / idee / tool / sonstiges
+    link = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class TrackerTodo(Base):
     __tablename__ = "tracker_todos"
 

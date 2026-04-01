@@ -10,6 +10,7 @@ import {
   Server,
   LogOut,
   Zap,
+  StickyNote,
 } from 'lucide-react'
 
 const nav = [
@@ -17,6 +18,7 @@ const nav = [
   { to: '/tracker',  icon: Kanban,          label: 'Projekte',  color: 'text-blue-500'   },
   { to: '/tasks',    icon: CheckSquare,     label: 'Tasks',     color: 'text-emerald-500'},
   { to: '/ideas',    icon: Lightbulb,       label: 'Ideen',     color: 'text-amber-500'  },
+  { to: '/notes',    icon: StickyNote,      label: 'Notizen',   color: 'text-sky-400'    },
   { to: '/vps',      icon: Server,          label: 'VPS',       color: 'text-stone-400'  },
   { to: '/trading',  icon: TrendingUp,      label: 'Trading',   color: 'text-green-600'  },
   { to: '/briefing', icon: Newspaper,       label: 'Briefing',  color: 'text-stone-400'  },
