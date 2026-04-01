@@ -52,7 +52,7 @@ function AddNoteModal({ onClose, onCreated }) {
     <>
       <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-surface-card border border-surface-border rounded-xl w-full max-w-md shadow-2xl">
+        <div className="animate-modal bg-surface-card border border-surface-border rounded-xl w-full max-w-md shadow-2xl">
           <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
             <h2 className="font-semibold">Neue Notiz</h2>
             <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>
@@ -264,7 +264,7 @@ export default function Notes() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="stagger-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(n => (
             <NoteCard key={n.id} note={n} onDelete={deleteNote} />
           ))}

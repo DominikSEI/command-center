@@ -26,16 +26,22 @@
 
   /* Buttons */
   .btn-primary {
-    @apply relative text-white font-medium px-4 py-2 rounded-xl transition-all duration-200;
-    @apply hover:opacity-90 active:scale-[0.98];
+    @apply relative text-white font-medium px-4 py-2 rounded-xl;
+    @apply transition-all duration-200;
+    @apply hover:scale-[1.03] active:scale-[0.97];
     background: theme('backgroundImage.gradient-accent');
     box-shadow: 0 0 16px rgba(139,92,246,0.3);
   }
+  .btn-primary:hover {
+    box-shadow: 0 0 28px rgba(139,92,246,0.55);
+  }
   .btn-ghost {
-    @apply text-gray-400 hover:text-white hover:bg-surface-hover px-3 py-2 rounded-xl transition-all duration-150;
+    @apply text-gray-400 hover:text-white hover:bg-surface-hover px-3 py-2 rounded-xl;
+    @apply transition-all duration-150 hover:scale-[1.02] active:scale-[0.97];
   }
   .btn-outline {
-    @apply text-gray-300 border border-surface-border hover:border-accent/40 hover:text-white px-3 py-2 rounded-xl transition-all duration-150;
+    @apply text-gray-300 border border-surface-border hover:border-accent/40 hover:text-white px-3 py-2 rounded-xl;
+    @apply transition-all duration-150 hover:scale-[1.02] active:scale-[0.97];
   }
 
   /* Inputs */
@@ -73,6 +79,59 @@
     @apply text-[11px] px-2 py-0.5 rounded-full border font-medium;
   }
 }
+
+/* ── Animations ───────────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUpModal {
+  from { opacity: 0; transform: translateY(22px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(36px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Page fade-in on route change */
+.animate-page {
+  animation: fadeIn 0.18s ease-out both;
+}
+
+/* Modal slide-up */
+.animate-modal {
+  animation: slideUpModal 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Drawer slide-in from right */
+.animate-drawer {
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Staggered card grid — add class to the grid wrapper */
+.stagger-grid > * {
+  animation: fadeInUp 0.32s ease-out both;
+}
+.stagger-grid > *:nth-child(2)  { animation-delay: 0.05s; }
+.stagger-grid > *:nth-child(3)  { animation-delay: 0.10s; }
+.stagger-grid > *:nth-child(4)  { animation-delay: 0.15s; }
+.stagger-grid > *:nth-child(5)  { animation-delay: 0.18s; }
+.stagger-grid > *:nth-child(6)  { animation-delay: 0.21s; }
+.stagger-grid > *:nth-child(7)  { animation-delay: 0.24s; }
+.stagger-grid > *:nth-child(8)  { animation-delay: 0.27s; }
+.stagger-grid > *:nth-child(9)  { animation-delay: 0.29s; }
+.stagger-grid > *:nth-child(10) { animation-delay: 0.31s; }
+.stagger-grid > *:nth-child(11) { animation-delay: 0.33s; }
+.stagger-grid > *:nth-child(12) { animation-delay: 0.35s; }
 
 /* Scrollbar */
 ::-webkit-scrollbar       { width: 5px; height: 5px; }

@@ -40,7 +40,7 @@ function AddTaskModal({ onClose, onCreated }) {
     <>
       <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-surface-card border border-surface-border rounded-xl w-full max-w-sm shadow-2xl">
+        <div className="animate-modal bg-surface-card border border-surface-border rounded-xl w-full max-w-sm shadow-2xl">
           <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
             <h2 className="font-semibold">Neue Aufgabe</h2>
             <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>

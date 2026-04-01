@@ -42,7 +42,7 @@ function AddIdeaModal({ onClose, onCreated }) {
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="w-full max-w-sm rounded-2xl border border-surface-border shadow-2xl"
+          className="animate-modal w-full max-w-sm rounded-2xl border border-surface-border shadow-2xl"
           style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
         >
           <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
@@ -255,7 +255,7 @@ export default function Ideas() {
       ) : filtered.length === 0 ? (
         <div className="text-gray-600 text-sm">Keine Ideen mit diesem Filter.</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="stagger-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(idea => (
             <IdeaCard
               key={idea.id}

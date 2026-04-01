@@ -96,7 +96,7 @@ export default function TrackerDrawer({ project: initialProject, onClose, onUpda
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={onClose} />
 
       <div
-        className="fixed right-0 top-0 h-full w-full max-w-lg border-l border-surface-border z-50 flex flex-col shadow-2xl"
+        className="animate-drawer fixed right-0 top-0 h-full w-full max-w-lg border-l border-surface-border z-50 flex flex-col shadow-2xl"
         style={{ background: 'linear-gradient(180deg, #0c0e17 0%, #090b13 100%)' }}
       >
         {/* Header */}

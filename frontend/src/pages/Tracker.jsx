@@ -167,7 +167,7 @@ export default function Tracker() {
                   <span className="text-[11px] text-gray-600 font-normal">({ps.length})</span>
                   <div className="flex-1 h-px bg-surface-border" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="stagger-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {ps.map(p => (
                     <TrackerCard key={p.id} project={p} onClick={setSelected} />
                   ))}
