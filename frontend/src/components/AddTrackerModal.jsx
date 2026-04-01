@@ -35,60 +35,31 @@ export default function AddTrackerModal({ onClose, onCreated }) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
-          className="w-full max-w-sm rounded-2xl border border-surface-border shadow-2xl"
-          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
-        >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
-            <h2 className="font-semibold text-sm">Neues Projekt</h2>
+        <div className="bg-white w-full max-w-sm rounded-3xl shadow-xl border border-surface-border">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
+            <h2 className="font-semibold text-stone-800">Neues Projekt</h2>
             <button onClick={onClose} className="btn-ghost p-1.5"><X size={15} /></button>
           </div>
-
-          <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Name</label>
-              <input
-                value={form.name}
-                onChange={e => set('name', e.target.value)}
-                className="input"
-                required
-                autoFocus
-                placeholder="Projektname…"
-              />
+              <label className="block text-xs font-semibold text-stone-500 mb-1.5 uppercase tracking-wide">Name</label>
+              <input value={form.name} onChange={e => set('name', e.target.value)} className="input" required autoFocus placeholder="Projektname…" />
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Status</label>
-              <select
-                value={form.status}
-                onChange={e => set('status', e.target.value)}
-                className="input"
-              >
-                {STATUS_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
+              <label className="block text-xs font-semibold text-stone-500 mb-1.5 uppercase tracking-wide">Status</label>
+              <select value={form.status} onChange={e => set('status', e.target.value)} className="input">
+                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Beschreibung</label>
-              <textarea
-                value={form.description}
-                onChange={e => set('description', e.target.value)}
-                rows={3}
-                className="input resize-none"
-                placeholder="Was soll dieses Projekt erreichen?"
-              />
+              <label className="block text-xs font-semibold text-stone-500 mb-1.5 uppercase tracking-wide">Beschreibung</label>
+              <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="input resize-none" placeholder="Was soll dieses Projekt erreichen?" />
             </div>
-
-            {error && <p className="text-red-400 text-xs">{error}</p>}
-
+            {error && <p className="text-red-600 text-xs">{error}</p>}
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={onClose} className="flex-1 btn-outline text-sm py-2.5">
-                Abbrechen
-              </button>
+              <button type="button" onClick={onClose} className="flex-1 btn-outline text-sm py-2.5">Abbrechen</button>
               <button type="submit" disabled={loading} className="flex-1 btn-primary text-sm py-2.5 disabled:opacity-60">
                 {loading ? 'Erstellen…' : 'Erstellen'}
               </button>

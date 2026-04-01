@@ -29,7 +29,7 @@ export default function Login() {
     <div
       className="min-h-screen flex items-center justify-center p-4"
       style={{
-        background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(139,92,246,0.12) 0%, #07080f 60%)',
+        background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(232,99,10,0.08) 0%, #F4EFE6 60%)',
       }}
     >
       <div className="w-full max-w-sm">
@@ -37,31 +37,22 @@ export default function Login() {
         <div className="flex flex-col items-center mb-10">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
-            style={{
-              background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
-              boxShadow: '0 0 32px rgba(139,92,246,0.4)',
-            }}
+            style={{ background: 'linear-gradient(135deg, #E8630A, #F59E0B)', boxShadow: '0 4px 16px rgba(232,99,10,0.3)' }}
           >
             <Zap size={26} className="text-white" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Command Center</h1>
-          <p className="text-sm text-gray-500 mt-1">Persönliches KI-Dashboard</p>
+          <h1 className="text-2xl font-bold text-stone-800 tracking-tight">Command Center</h1>
+          <p className="text-sm text-stone-500 mt-1">Persönliches Produktivitäts-Dashboard</p>
         </div>
 
         {/* Card */}
-        <div
-          className="rounded-2xl border border-surface-border p-6 space-y-5"
-          style={{
-            background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)',
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 24px 48px rgba(0,0,0,0.5)',
-          }}
-        >
+        <div className="bg-white rounded-3xl p-7 space-y-5" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)' }}>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2">Benutzername</label>
+            <label className="block text-xs font-semibold text-stone-500 mb-2 uppercase tracking-wide">Benutzername</label>
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={e => setUsername(e.target.value)}
               className="input"
               placeholder="admin"
               required
@@ -70,11 +61,11 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2">Passwort</label>
+            <label className="block text-xs font-semibold text-stone-500 mb-2 uppercase tracking-wide">Passwort</label>
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               className="input"
               placeholder="••••••••"
               required
@@ -82,7 +73,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-950/20 border border-red-900/30 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
               {error}
             </div>
           )}
@@ -93,7 +84,7 @@ export default function Login() {
             disabled={loading}
             className="btn-primary w-full py-3 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? 'Anmelden…' : 'Anmelden'}
+            {loading ? 'Anmelden…' : 'Anmelden →'}
           </button>
         </div>
       </div>

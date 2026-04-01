@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, RefreshCw, CheckCircle2, AlertTriangle, XCircle, Clock, Activity, DollarSign, Bot } from 'lucide-react'
+import { Plus, RefreshCw, CheckCircle2, Clock, DollarSign, Bot, Activity } from 'lucide-react'
 import api from '../api'
 import StatusDot from '../components/StatusDot'
 import ProjectDrawer from '../components/ProjectDrawer'
@@ -16,63 +16,87 @@ function groupByCluster(projects) {
   return map
 }
 
-function MetricCard({ icon: Icon, label, value, sub, accent }) {
+/* ── Greeting ──────────────────────────────────────────────── */
+
+function Greeting() {
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const hour = now.getHours()
+  const greeting = hour < 12 ? 'Guten Morgen' : hour < 18 ? 'Hallo' : 'Guten Abend'
+  const dateStr = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+
   return (
-    <div
-      className="rounded-2xl border border-surface-border p-5 flex items-start gap-4"
-      style={{
-        background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)',
-      }}
-    >
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-        style={{ background: accent ? 'linear-gradient(135deg, #8b5cf6, #3b82f6)' : 'rgba(255,255,255,0.05)' }}
-      >
-        <Icon size={17} className={accent ? 'text-white' : 'text-gray-400'} />
-      </div>
-      <div className="min-w-0">
-        <div className="text-xs text-gray-500 font-medium mb-1">{label}</div>
-        <div className="text-2xl font-semibold leading-none">{value}</div>
-        {sub && <div className="text-xs text-gray-600 mt-1.5">{sub}</div>}
+    <div>
+      <h1 className="text-2xl font-bold text-stone-800">
+        {greeting}, Dominik! 👋
+      </h1>
+      <p className="text-stone-400 text-sm mt-0.5">{dateStr} · {timeStr} Uhr</p>
+    </div>
+  )
+}
+
+/* ── Metric Card ───────────────────────────────────────────── */
+
+function MetricCard({ icon: Icon, label, value, sub, iconBg, iconColor }) {
+  return (
+    <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)' }}>
+      <div className="flex items-start gap-4">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+          <Icon size={17} className={iconColor} />
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs font-medium text-stone-400 mb-1">{label}</div>
+          <div className="text-2xl font-bold text-stone-800 leading-none">{value}</div>
+          {sub && <div className="text-xs text-stone-400 mt-1.5">{sub}</div>}
+        </div>
       </div>
     </div>
   )
 }
 
+/* ── Status Badge ──────────────────────────────────────────── */
+
 function StatusBadge({ status }) {
   const map = {
-    online:  { label: 'Online',  cls: 'text-emerald-400 bg-emerald-950/40 border-emerald-900/40' },
-    warning: { label: 'Warning', cls: 'text-amber-400  bg-amber-950/40  border-amber-900/40'  },
-    down:    { label: 'Down',    cls: 'text-red-400    bg-red-950/40    border-red-900/40'    },
-  }[status] ?? { label: '–', cls: 'text-gray-500 bg-surface-raised border-surface-border' }
+    online:  { label: 'Online',  cls: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    warning: { label: 'Warning', cls: 'text-amber-700  bg-amber-50  border-amber-200'   },
+    down:    { label: 'Down',    cls: 'text-red-700    bg-red-50    border-red-200'      },
+  }[status] ?? { label: '–', cls: 'text-stone-500 bg-stone-100 border-stone-200' }
 
-  return (
-    <span className={`badge ${map.cls}`}>{map.label}</span>
-  )
+  return <span className={`badge ${map.cls}`}>{map.label}</span>
 }
+
+/* ── Project Card ──────────────────────────────────────────── */
 
 function ProjectCard({ project, onClick }) {
   const uptimeColor =
-    project.uptime_7d == null ? 'text-gray-600' :
-    project.uptime_7d >= 99  ? 'text-emerald-400' :
-    project.uptime_7d >= 80  ? 'text-amber-400'  : 'text-red-400'
+    project.uptime_7d == null ? 'text-stone-400' :
+    project.uptime_7d >= 99  ? 'text-emerald-600' :
+    project.uptime_7d >= 80  ? 'text-amber-600'  : 'text-red-600'
 
   return (
     <button
       onClick={() => onClick(project)}
-      className="group text-left w-full rounded-2xl border border-surface-border p-4 transition-all duration-200 hover:border-accent/30 hover:shadow-glow-sm"
-      style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+      className="group text-left w-full bg-white rounded-2xl p-4 transition-all duration-200 hover:shadow-card-md"
+      style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)' }}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <StatusDot status={project.current_status} />
-          <span className="font-medium text-sm truncate">{project.name}</span>
+          <span className="font-semibold text-sm text-stone-800 truncate">{project.name}</span>
         </div>
         <StatusBadge status={project.current_status} />
       </div>
       <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-600 font-mono bg-surface-raised px-1.5 py-0.5 rounded-lg">{project.check_type}</span>
+        <span className="text-stone-400 font-mono bg-surface-raised px-1.5 py-0.5 rounded-lg border border-surface-border">
+          {project.check_type}
+        </span>
         <span className={uptimeColor}>
           {project.uptime_7d != null ? `${project.uptime_7d}% uptime` : 'Kein Check'}
         </span>
@@ -81,11 +105,10 @@ function ProjectCard({ project, onClick }) {
   )
 }
 
+/* ── Last Check helper ─────────────────────────────────────── */
+
 function formatLastCheck(projects) {
-  const dates = projects
-    .map(p => p.last_checked)
-    .filter(Boolean)
-    .map(d => new Date(d))
+  const dates = projects.map(p => p.last_checked).filter(Boolean).map(d => new Date(d))
   if (!dates.length) return '–'
   const latest = new Date(Math.max(...dates))
   const diff = Math.round((Date.now() - latest.getTime()) / 1000)
@@ -93,6 +116,8 @@ function formatLastCheck(projects) {
   if (diff < 3600) return `vor ${Math.round(diff / 60)}min`
   return latest.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
+
+/* ── Main Page ─────────────────────────────────────────────── */
 
 export default function Dashboard() {
   const [projects, setProjects] = useState([])
@@ -122,15 +147,12 @@ export default function Dashboard() {
 
   return (
     <div className="p-8 space-y-8 max-w-7xl">
-      {/* Page header */}
+      {/* Greeting + Actions */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">System-Übersicht und Service-Status</p>
-        </div>
-        <div className="flex items-center gap-2">
+        <Greeting />
+        <div className="flex items-center gap-2 mt-1">
           <button onClick={fetchProjects} className="btn-ghost p-2.5" title="Aktualisieren">
-            <RefreshCw size={15} className={loading ? 'animate-spin text-accent' : ''} />
+            <RefreshCw size={15} className={loading ? 'animate-spin text-accent' : 'text-stone-400'} />
           </button>
           <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2 text-sm">
             <Plus size={15} />
@@ -145,51 +167,55 @@ export default function Dashboard() {
           icon={CheckCircle2}
           label="Projekte Online"
           value={loading ? '–' : `${online}/${projects.length}`}
-          sub={down > 0 ? `${down} down` : warning > 0 ? `${warning} warning` : 'Alles läuft'}
-          accent={!loading && down === 0 && warning === 0}
+          sub={down > 0 ? `${down} ausgefallen` : warning > 0 ? `${warning} mit Warnung` : 'Alles läuft'}
+          iconBg={!loading && down === 0 && warning === 0 ? 'bg-emerald-100' : 'bg-stone-100'}
+          iconColor={!loading && down === 0 && warning === 0 ? 'text-emerald-600' : 'text-stone-400'}
         />
         <MetricCard
           icon={DollarSign}
           label="API-Kosten heute"
           value="–"
           sub="Coming soon"
+          iconBg="bg-amber-100"
+          iconColor="text-amber-600"
         />
         <MetricCard
           icon={Bot}
           label="Bot-Status"
           value="–"
           sub="Coming soon"
+          iconBg="bg-blue-100"
+          iconColor="text-blue-600"
         />
         <MetricCard
           icon={Clock}
           label="Letzter Check"
           value={loading ? '–' : formatLastCheck(projects)}
           sub="Alle 30s"
+          iconBg="bg-orange-100"
+          iconColor="text-orange-500"
         />
       </div>
 
       {/* Project Grid */}
       {loading ? (
-        <div className="text-gray-600 text-sm">Lade…</div>
+        <div className="text-stone-400 text-sm">Lade…</div>
       ) : projects.length === 0 ? (
-        <div
-          className="rounded-2xl border border-surface-border text-center py-16 text-gray-500"
-          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
-        >
-          <Activity size={36} className="mx-auto mb-3 text-gray-700" />
-          <p className="mb-4">Noch keine Projekte konfiguriert.</p>
+        <div className="bg-white rounded-2xl text-center py-16 text-stone-400" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <Activity size={36} className="mx-auto mb-3 text-stone-300" />
+          <p className="mb-4 text-stone-500">Noch keine Projekte konfiguriert.</p>
           <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">
             Erstes Projekt hinzufügen
           </button>
         </div>
       ) : (
         <div className="space-y-7">
-          {CLUSTER_ORDER.filter(c => clusters[c]).map((cluster) => (
+          {CLUSTER_ORDER.filter(c => clusters[c]).map(cluster => (
             <section key={cluster}>
               <div className="flex items-center gap-3 mb-3">
                 <span className="section-label">{cluster}</span>
                 <div className="flex-1 h-px bg-surface-border" />
-                <span className="text-[11px] text-gray-600">{clusters[cluster].length}</span>
+                <span className="text-[11px] text-stone-400">{clusters[cluster].length}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {clusters[cluster].map(p => (
@@ -203,15 +229,12 @@ export default function Dashboard() {
 
       {/* Briefing Placeholder */}
       {!loading && projects.length > 0 && (
-        <div
-          className="rounded-2xl border border-surface-border p-5"
-          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
-        >
-          <div className="flex items-center gap-2 mb-3">
+        <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div className="flex items-center gap-2 mb-2">
             <span className="section-label">Daily Briefing</span>
-            <span className="badge border-surface-border text-gray-600 bg-surface-raised">Coming Phase 3</span>
+            <span className="badge bg-amber-50 border-amber-200 text-amber-600">Phase 3</span>
           </div>
-          <p className="text-sm text-gray-600">KI-Zusammenfassung deiner YouTube-Kanäle, Aktiennews und Projekt-Updates erscheinen hier.</p>
+          <p className="text-sm text-stone-400">KI-Zusammenfassung deiner YouTube-Kanäle, Aktiennews und Projekt-Updates erscheinen hier.</p>
         </div>
       )}
 
@@ -219,7 +242,7 @@ export default function Dashboard() {
         <ProjectDrawer
           project={selected}
           onClose={() => setSelected(null)}
-          onUpdated={(updated) => {
+          onUpdated={updated => {
             setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))
             setSelected(prev => ({ ...prev, ...updated }))
           }}
