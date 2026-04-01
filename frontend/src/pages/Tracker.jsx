@@ -5,19 +5,19 @@ import TrackerDrawer from '../components/TrackerDrawer'
 import AddTrackerModal from '../components/AddTrackerModal'
 
 const STATUS_META = {
-  in_progress: { label: 'In Arbeit',  dot: '#3b82f6', badge: 'text-blue-700 bg-blue-50 border-blue-200' },
-  review:      { label: 'Review',     dot: '#f59e0b', badge: 'text-amber-700 bg-amber-50 border-amber-200' },
-  idea:        { label: 'Idee',       dot: '#a8a29e', badge: 'text-stone-500 bg-stone-100 border-stone-200' },
-  live:        { label: 'Live',       dot: '#10b981', badge: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+  in_progress: { label: 'In Arbeit',  dot: '#3b82f6', badge: 'text-blue-400 bg-blue-950/30 border-blue-900/40' },
+  review:      { label: 'Review',     dot: '#f59e0b', badge: 'text-amber-400 bg-amber-950/30 border-amber-900/40' },
+  idea:        { label: 'Idee',       dot: '#6b7280', badge: 'text-gray-400 bg-surface-raised border-surface-border' },
+  live:        { label: 'Live',       dot: '#10b981', badge: 'text-emerald-400 bg-emerald-950/30 border-emerald-900/40' },
 }
 
 const STATUS_ORDER = ['in_progress', 'review', 'live', 'idea']
 
-function getProgressBg(value) {
+function getProgressStyle(value) {
   if (value >= 100) return 'linear-gradient(90deg, #10b981, #34d399)'
-  if (value >= 60)  return 'linear-gradient(90deg, #E8630A, #F59E0B)'
+  if (value >= 60)  return 'linear-gradient(90deg, #8b5cf6, #3b82f6)'
   if (value >= 30)  return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-  return 'linear-gradient(90deg, #d6d3d1, #e7e5e4)'
+  return 'linear-gradient(90deg, #374151, #4b5563)'
 }
 
 function ProgressBar({ value }) {
@@ -25,7 +25,7 @@ function ProgressBar({ value }) {
     <div className="progress-bar">
       <div
         className="progress-bar-fill"
-        style={{ width: `${Math.min(value, 100)}%`, background: getProgressBg(value) }}
+        style={{ width: `${Math.min(value, 100)}%`, background: getProgressStyle(value) }}
       />
     </div>
   )
@@ -40,28 +40,28 @@ function TrackerCard({ project, onClick }) {
   return (
     <button
       onClick={() => onClick(project)}
-      className="group text-left w-full bg-white rounded-2xl p-5 transition-all duration-200 hover:shadow-card-md"
-      style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)' }}
+      className="group text-left w-full rounded-2xl border border-surface-border p-5 transition-all duration-200 hover:border-accent/30 hover:shadow-glow-sm"
+      style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2.5">
-        <h3 className="font-semibold text-sm leading-snug text-stone-800 flex-1 text-left">{project.name}</h3>
+        <h3 className="font-semibold text-sm leading-snug flex-1 text-left">{project.name}</h3>
         <span className={`badge shrink-0 ${meta.badge}`}>{meta.label}</span>
       </div>
 
       {/* Description */}
       {project.description && (
-        <p className="text-xs text-stone-400 mb-4 line-clamp-2 leading-relaxed text-left">{project.description}</p>
+        <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed text-left">{project.description}</p>
       )}
 
       {/* Progress */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-stone-400">Fortschritt</span>
+          <span className="text-gray-600">Fortschritt</span>
           <span className={
-            progress >= 100 ? 'text-emerald-600 font-semibold' :
-            progress >= 60  ? 'text-accent font-semibold' :
-            'text-stone-400'
+            progress >= 100 ? 'text-emerald-400 font-medium' :
+            progress >= 60  ? 'text-accent font-medium' :
+            'text-gray-500'
           }>
             {progress}%
           </span>
@@ -69,15 +69,15 @@ function TrackerCard({ project, onClick }) {
         <ProgressBar value={progress} />
       </div>
 
-      {/* Todo dots */}
+      {/* Todo count */}
       {hasTodos && (
-        <div className="flex items-center gap-1.5 mt-3 text-xs text-stone-400">
+        <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-600">
           <div className="flex gap-0.5">
             {project.todos.slice(0, 8).map((t, i) => (
               <div
                 key={i}
                 className="w-1.5 h-1.5 rounded-full"
-                style={{ background: t.done ? '#E8630A' : '#E5DDD0' }}
+                style={{ background: t.done ? '#8b5cf6' : '#1b1e2e' }}
               />
             ))}
           </div>
@@ -117,17 +117,19 @@ export default function Tracker() {
 
   const byStatus = s => projects.filter(p => p.status === s)
   const activeStatuses = STATUS_ORDER.filter(s => byStatus(s).length > 0)
+
+  // Summary counts
   const inProgress = byStatus('in_progress').length
   const live       = byStatus('live').length
 
   return (
     <div className="p-8 space-y-8 max-w-7xl">
-      {/* Header */}
+      {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800 tracking-tight">Projekte</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Projekte</h1>
           {!loading && (
-            <p className="text-sm text-stone-400 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               {projects.length} Projekte · {inProgress} in Arbeit{live > 0 ? ` · ${live} live` : ''}
             </p>
           )}
@@ -138,12 +140,16 @@ export default function Tracker() {
         </button>
       </div>
 
+      {/* Content */}
       {loading ? (
-        <div className="text-stone-400 text-sm">Lade…</div>
+        <div className="text-gray-600 text-sm">Lade…</div>
       ) : projects.length === 0 ? (
-        <div className="bg-white rounded-2xl text-center py-20 text-stone-400" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          <Kanban size={36} className="mx-auto mb-3 text-stone-300" />
-          <p className="mb-4 text-stone-500">Noch keine Projekte angelegt.</p>
+        <div
+          className="rounded-2xl border border-surface-border text-center py-20 text-gray-500"
+          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+        >
+          <Kanban size={36} className="mx-auto mb-3 text-gray-700" />
+          <p className="mb-4">Noch keine Projekte angelegt.</p>
           <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">
             Erstes Projekt erstellen
           </button>
@@ -156,9 +162,9 @@ export default function Tracker() {
             return (
               <section key={status}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.dot }} />
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.dot, boxShadow: `0 0 6px ${meta.dot}99` }} />
                   <span className="section-label">{meta.label}</span>
-                  <span className="text-[11px] text-stone-400">({ps.length})</span>
+                  <span className="text-[11px] text-gray-600 font-normal">({ps.length})</span>
                   <div className="flex-1 h-px bg-surface-border" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

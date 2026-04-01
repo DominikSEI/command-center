@@ -1,31 +1,32 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         surface: {
-          DEFAULT: '#F4EFE6',   // warm beige/cream background
-          card:    '#FFFFFF',   // white cards
-          raised:  '#FAF8F4',   // slightly elevated (input backgrounds)
-          border:  '#E5DDD0',   // warm border
-          hover:   '#EDE7DB',   // hover state
+          DEFAULT: '#07080f',
+          card:    '#0c0e17',
+          raised:  '#11131e',
+          border:  '#1b1e2e',
+          hover:   '#13162a',
         },
         accent: {
-          DEFAULT: '#E8630A',   // warm orange
-          hover:   '#C85509',
-          light:   '#FEF0E6',   // soft orange tint (badge backgrounds)
+          DEFAULT: '#8b5cf6',
+          hover:   '#7c3aed',
+          blue:    '#3b82f6',
+          glow:    'rgba(139,92,246,0.18)',
         },
       },
       backgroundImage: {
-        'gradient-accent': 'linear-gradient(135deg, #E8630A 0%, #F59E0B 100%)',
-        'gradient-warm':   'linear-gradient(135deg, #FAF8F4 0%, #F4EFE6 100%)',
+        'gradient-accent': 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
+        'gradient-card':   'linear-gradient(160deg, rgba(139,92,246,0.06) 0%, rgba(59,130,246,0.03) 100%)',
       },
       boxShadow: {
-        'card':    '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
-        'card-md': '0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)',
-        'glow':    '0 0 20px rgba(232,99,10,0.15)',
-        'glow-sm': '0 0 10px rgba(232,99,10,0.10)',
+        'glow':    '0 0 24px rgba(139,92,246,0.18)',
+        'glow-sm': '0 0 12px rgba(139,92,246,0.12)',
+        'card':    '0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
