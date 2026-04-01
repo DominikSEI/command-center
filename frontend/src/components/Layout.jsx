@@ -18,12 +18,12 @@ const nav = [
   { to: '/tasks',    icon: CheckSquare,     label: 'Tasks',     color: 'text-emerald-500'},
   { to: '/ideas',    icon: Lightbulb,       label: 'Ideen',     color: 'text-amber-500'  },
   { to: '/vps',      icon: Server,          label: 'VPS',       color: 'text-stone-400'  },
-  { to: '/trading',  icon: TrendingUp,      label: 'Trading',   color: 'text-stone-400'  },
+  { to: '/trading',  icon: TrendingUp,      label: 'Trading',   color: 'text-green-600'  },
   { to: '/briefing', icon: Newspaper,       label: 'Briefing',  color: 'text-stone-400'  },
   { to: '/content',  icon: Image,           label: 'Content',   color: 'text-stone-400'  },
 ]
 
-const COMING_SOON = ['/trading', '/briefing', '/content']
+const COMING_SOON = ['/briefing', '/content']
 
 export default function Layout() {
   const navigate = useNavigate()
