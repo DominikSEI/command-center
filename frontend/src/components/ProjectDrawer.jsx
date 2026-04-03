@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, RefreshCw, Pencil } from 'lucide-react'
+import { X, RefreshCw, Pencil, Trash2 } from 'lucide-react'
 import api from '../api'
 import StatusDot from './StatusDot'
 import EditProjectModal from './EditProjectModal'
@@ -9,11 +9,24 @@ function formatDate(d) {
   return new Date(d).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-export default function ProjectDrawer({ project: initialProject, onClose, onUpdated }) {
+export default function ProjectDrawer({ project: initialProject, onClose, onUpdated, onDeleted }) {
   const [project, setProject] = useState(initialProject)
   const [logs, setLogs]       = useState([])
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (!confirm(`Projekt „${project.name}" wirklich löschen?`)) return
+    setDeleting(true)
+    try {
+      await api.delete(`/projects/${project.id}`)
+      onDeleted?.(project.id)
+      onClose()
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   async function fetchLogs() {
     setLoading(true)
@@ -38,7 +51,7 @@ export default function ProjectDrawer({ project: initialProject, onClose, onUpda
 
       <div
         className="fixed right-0 top-0 h-full w-full max-w-lg border-l border-surface-border z-50 flex flex-col shadow-2xl"
-        style={{ background: 'linear-gradient(180deg, #0c0e17 0%, #090b13 100%)' }}
+        style={{ background: 'var(--bg-gradient-drawer)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-surface-border">
@@ -52,6 +65,14 @@ export default function ProjectDrawer({ project: initialProject, onClose, onUpda
           <div className="flex items-center gap-1 shrink-0">
             <button onClick={() => setShowEdit(true)} className="btn-ghost p-2" title="Bearbeiten">
               <Pencil size={14} />
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="btn-ghost p-2 hover:text-red-400 transition-colors"
+              title="Löschen"
+            >
+              <Trash2 size={14} />
             </button>
             <button onClick={onClose} className="btn-ghost p-2">
               <X size={17} />

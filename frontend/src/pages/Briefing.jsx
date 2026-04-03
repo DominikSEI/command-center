@@ -70,7 +70,7 @@ function VideoCard({ video }) {
       target="_blank"
       rel="noopener noreferrer"
       className="group flex gap-3 rounded-xl border border-surface-border p-3 hover:border-accent/30 transition-all duration-150"
-      style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+      style={{ background: 'var(--bg-gradient-card)' }}
     >
       {video.thumbnail ? (
         <img
@@ -177,7 +177,7 @@ export default function Briefing() {
       {(loading || generating) && (
         <div
           className="rounded-2xl border border-surface-border p-12 flex flex-col items-center justify-center gap-4"
-          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+          style={{ background: 'var(--bg-gradient-card)' }}
         >
           <Loader2 size={32} className="animate-spin text-accent" />
           <p className="text-sm text-gray-500 text-center max-w-xs">
@@ -192,7 +192,7 @@ export default function Briefing() {
       {!loading && !generating && !briefing && !error && (
         <div
           className="rounded-2xl border border-surface-border text-center py-20 text-gray-500"
-          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+          style={{ background: 'var(--bg-gradient-card)' }}
         >
           <Sparkles size={36} className="mx-auto mb-3 text-gray-700" />
           <p className="mb-4">Noch kein Briefing vorhanden.</p>
@@ -209,19 +209,49 @@ export default function Briefing() {
       {/* Content */}
       {!loading && !generating && briefing && (
         <div className="space-y-6">
-          {/* Summary */}
-          <div
-            className="rounded-2xl border border-surface-border p-6"
-            style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
-          >
-            <div className="flex items-center gap-2 mb-5">
-              <Sparkles size={13} className="text-accent" />
-              <span className="text-[11px] font-semibold tracking-widest uppercase text-accent">
-                KI-Zusammenfassung
-              </span>
+          {/* Split summaries */}
+          {(briefing.summary_ai || briefing.summary_stocks) ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                className="rounded-2xl border border-surface-border p-6"
+                style={{ background: 'var(--bg-gradient-card)' }}
+              >
+                <div className="flex items-center gap-2 mb-5">
+                  <Sparkles size={13} className="text-purple-400" />
+                  <span className="text-[11px] font-semibold tracking-widest uppercase text-purple-400">
+                    KI &amp; Tech
+                  </span>
+                </div>
+                <SummaryRenderer text={briefing.summary_ai} />
+              </div>
+              <div
+                className="rounded-2xl border border-surface-border p-6"
+                style={{ background: 'var(--bg-gradient-card)' }}
+              >
+                <div className="flex items-center gap-2 mb-5">
+                  <Sparkles size={13} className="text-emerald-400" />
+                  <span className="text-[11px] font-semibold tracking-widest uppercase text-emerald-400">
+                    Aktien &amp; Märkte
+                  </span>
+                </div>
+                <SummaryRenderer text={briefing.summary_stocks} />
+              </div>
             </div>
-            <SummaryRenderer text={briefing.summary} />
-          </div>
+          ) : (
+            /* Fallback: combined summary for older briefings */
+            <div
+              className="rounded-2xl border border-surface-border p-6"
+              style={{ background: 'var(--bg-gradient-card)' }}
+            >
+              <div className="flex items-center gap-2 mb-5">
+                <Sparkles size={13} className="text-accent" />
+                <span className="text-[11px] font-semibold tracking-widest uppercase text-accent">
+                  KI-Zusammenfassung
+                </span>
+              </div>
+              <SummaryRenderer text={briefing.summary} />
+            </div>
+          )}
 
           {/* Analysed videos */}
           {briefing.videos?.length > 0 && (

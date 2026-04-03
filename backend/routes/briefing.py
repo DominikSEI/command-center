@@ -15,6 +15,8 @@ router = APIRouter(prefix="/briefing", tags=["briefing"])
 class BriefingOut(BaseModel):
     id: int
     summary: str
+    summary_ai: str | None = None
+    summary_stocks: str | None = None
     video_count: int
     videos: List[Any] = []
     generated_at: datetime
@@ -27,6 +29,8 @@ def _to_out(briefing: Briefing) -> BriefingOut:
     return BriefingOut(
         id=briefing.id,
         summary=briefing.summary,
+        summary_ai=briefing.summary_ai,
+        summary_stocks=briefing.summary_stocks,
         video_count=briefing.video_count,
         videos=json.loads(briefing.videos_json or "[]"),
         generated_at=briefing.generated_at,

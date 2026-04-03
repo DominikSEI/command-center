@@ -29,16 +29,25 @@ def init_db():
 
 def _run_migrations():
     from sqlalchemy import text, inspect
+    insp = inspect(engine)
     with engine.connect() as conn:
         if DATABASE_URL.startswith("sqlite"):
-            # SQLite doesn't support IF NOT EXISTS for columns
-            cols = [c["name"] for c in inspect(engine).get_columns("tracker_projects")]
-            if "priority" not in cols:
+            # tracker_projects
+            tp_cols = [c["name"] for c in insp.get_columns("tracker_projects")]
+            if "priority" not in tp_cols:
                 conn.execute(text("ALTER TABLE tracker_projects ADD COLUMN priority INTEGER DEFAULT 2"))
-                conn.commit()
+            # briefings
+            br_cols = [c["name"] for c in insp.get_columns("briefings")]
+            if "summary_ai" not in br_cols:
+                conn.execute(text("ALTER TABLE briefings ADD COLUMN summary_ai TEXT"))
+            if "summary_stocks" not in br_cols:
+                conn.execute(text("ALTER TABLE briefings ADD COLUMN summary_stocks TEXT"))
+            conn.commit()
         else:
             # PostgreSQL (Supabase) — supports IF NOT EXISTS directly
             conn.execute(text(
                 "ALTER TABLE tracker_projects ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 2"
             ))
+            conn.execute(text("ALTER TABLE briefings ADD COLUMN IF NOT EXISTS summary_ai TEXT"))
+            conn.execute(text("ALTER TABLE briefings ADD COLUMN IF NOT EXISTS summary_stocks TEXT"))
             conn.commit()

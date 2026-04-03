@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, RefreshCw, CheckCircle2, Clock, Activity, DollarSign, Bot, Cloud, Kanban, CalendarDays, ListTodo } from 'lucide-react'
+import { Plus, RefreshCw, CheckCircle2, Activity, Cloud, Kanban, CalendarDays, ListTodo, ExternalLink, Bot, Newspaper } from 'lucide-react'
 import api from '../api'
 import StatusDot from '../components/StatusDot'
 import ProjectDrawer from '../components/ProjectDrawer'
@@ -59,6 +59,24 @@ function useQuickStats() {
   return stats
 }
 
+function useNews() {
+  const [news, setNews] = useState(null)
+  const fetch_ = useCallback(async () => {
+    try {
+      const res = await api.get('/news')
+      setNews(res.data)
+    } catch {
+      setNews({ ki: [], finance: [] })
+    }
+  }, [])
+  useEffect(() => {
+    fetch_()
+    const id = setInterval(fetch_, 30 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [fetch_])
+  return news
+}
+
 const CLUSTER_ORDER = ['Webapps', 'Bots', 'APIs', 'Infrastruktur']
 
 function groupByCluster(projects) {
@@ -75,7 +93,7 @@ function MetricCard({ icon: Icon, label, value, sub, accent }) {
     <div
       className="rounded-2xl border border-surface-border p-5 flex items-start gap-4"
       style={{
-        background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)',
+        background: 'var(--bg-gradient-card)',
         boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)',
       }}
     >
@@ -116,7 +134,7 @@ function ProjectCard({ project, onClick }) {
     <button
       onClick={() => onClick(project)}
       className="group text-left w-full rounded-2xl border border-surface-border p-4 transition-all duration-200 hover:border-accent/30 hover:shadow-glow-sm"
-      style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+      style={{ background: 'var(--bg-gradient-card)' }}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -132,6 +150,46 @@ function ProjectCard({ project, onClick }) {
         </span>
       </div>
     </button>
+  )
+}
+
+function NewsWidget({ title, icon: Icon, iconClass, items }) {
+  if (!items) return (
+    <div className="rounded-2xl border border-surface-border p-5" style={{ background: 'var(--bg-gradient-card)' }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Icon size={14} className={iconClass} />
+        <span className="section-label">{title}</span>
+      </div>
+      <div className="text-xs text-gray-600">Lädt…</div>
+    </div>
+  )
+  return (
+    <div className="rounded-2xl border border-surface-border p-5" style={{ background: 'var(--bg-gradient-card)' }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Icon size={14} className={iconClass} />
+        <span className="section-label">{title}</span>
+      </div>
+      {items.length === 0 ? (
+        <div className="text-xs text-gray-600">Keine News verfügbar</div>
+      ) : (
+        <div className="space-y-2">
+          {items.slice(0, 4).map((item, i) => (
+            <a
+              key={i}
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-2 group hover:bg-surface-hover rounded-lg p-1.5 -mx-1.5 transition-colors"
+            >
+              <span className="text-xs text-gray-400 leading-snug flex-1 group-hover:text-white transition-colors line-clamp-2">
+                {item.title}
+              </span>
+              <ExternalLink size={10} className="text-gray-700 group-hover:text-accent shrink-0 mt-0.5 transition-colors" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -157,6 +215,7 @@ export default function Dashboard() {
   const now     = useClock()
   const weather = useWeather()
   const stats   = useQuickStats()
+  const news    = useNews()
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -199,7 +258,7 @@ export default function Dashboard() {
         {/* Weather */}
         <div
           className="flex items-center gap-3 rounded-2xl border border-surface-border px-5 py-3"
-          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+          style={{ background: 'var(--bg-gradient-card)' }}
         >
           <Cloud size={20} className="text-sky-400" />
           {weather ? (
@@ -248,7 +307,7 @@ export default function Dashboard() {
       ) : projects.length === 0 ? (
         <div
           className="rounded-2xl border border-surface-border text-center py-16 text-gray-500"
-          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+          style={{ background: 'var(--bg-gradient-card)' }}
         >
           <Activity size={36} className="mx-auto mb-3 text-gray-700" />
           <p className="mb-4">Noch keine Projekte konfiguriert.</p>
@@ -276,6 +335,22 @@ export default function Dashboard() {
       )}
 
 
+      {/* ── News ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <NewsWidget
+          title="KI & Tech News"
+          icon={Bot}
+          iconClass="text-purple-400"
+          items={news?.ki}
+        />
+        <NewsWidget
+          title="Finanz-News"
+          icon={Newspaper}
+          iconClass="text-emerald-400"
+          items={news?.finance}
+        />
+      </div>
+
       {selected && (
         <ProjectDrawer
           project={selected}
@@ -283,6 +358,10 @@ export default function Dashboard() {
           onUpdated={(updated) => {
             setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))
             setSelected(prev => ({ ...prev, ...updated }))
+          }}
+          onDeleted={(id) => {
+            setProjects(prev => prev.filter(p => p.id !== id))
+            setSelected(null)
           }}
         />
       )}

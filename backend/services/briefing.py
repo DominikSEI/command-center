@@ -12,7 +12,9 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-CHANNEL_HANDLES = ["@AktienKanal", "@everlastai"]
+KI_CHANNELS     = ["@everlastai"]
+STOCKS_CHANNELS = ["@AktienKanal"]
+CHANNEL_HANDLES = KI_CHANNELS + STOCKS_CHANNELS
 YT_BASE = "https://www.googleapis.com/youtube/v3"
 GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models"
@@ -85,33 +87,69 @@ def _get_transcript(video_id: str) -> str:
 
 # ── Gemini summary ────────────────────────────────────────────────────────────
 
+async def _gemini_call(prompt: str, api_key: str) -> str:
+    async with httpx.AsyncClient(timeout=60) as client:
+        res = await client.post(
+            f"{GEMINI_URL}?key={api_key}",
+            json={"contents": [{"parts": [{"text": prompt}]}]},
+        )
+    if res.status_code != 200:
+        raise RuntimeError(f"Gemini API Fehler ({res.status_code}): {res.text[:200]}")
+    return res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+
 async def _gemini_summary(videos: list[dict]) -> str:
+    """Full combined summary (kept for backwards compatibility)."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY nicht konfiguriert")
-
     blocks = []
     for v in videos:
         content = v.get("transcript") or v.get("description") or "(kein Inhalt)"
         blocks.append(f"### {v['title']} ({v['channel']})\n{content[:3000]}")
-
     prompt = (
         "Fasse die wichtigsten Erkenntnisse aus diesen YouTube Videos zusammen.\n"
         "Strukturiere es in: KI-News, Aktien & Märkte, Sonstiges.\n"
         "Maximal 300 Wörter, auf Deutsch, bullet points.\n\n"
         + "\n\n".join(blocks)
     )
+    return await _gemini_call(prompt, api_key)
 
-    async with httpx.AsyncClient(timeout=60) as client:
-        res = await client.post(
-            f"{GEMINI_URL}?key={api_key}",
-            json={"contents": [{"parts": [{"text": prompt}]}]},
-        )
 
-    if res.status_code != 200:
-        raise RuntimeError(f"Gemini API Fehler ({res.status_code}): {res.text[:200]}")
+async def _gemini_summary_ki(videos: list[dict]) -> str:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY nicht konfiguriert")
+    blocks = []
+    for v in videos:
+        content = v.get("transcript") or v.get("description") or "(kein Inhalt)"
+        blocks.append(f"### {v['title']}\n{content[:3000]}")
+    if not blocks:
+        return "Keine neuen KI & Tech Videos in den letzten 24 Stunden."
+    prompt = (
+        "Fasse die wichtigsten KI & Tech Erkenntnisse aus diesen Videos zusammen.\n"
+        "Maximal 5 bullet points, auf Deutsch, prägnant.\n\n"
+        + "\n\n".join(blocks)
+    )
+    return await _gemini_call(prompt, api_key)
 
-    return res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+async def _gemini_summary_stocks(videos: list[dict]) -> str:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY nicht konfiguriert")
+    blocks = []
+    for v in videos:
+        content = v.get("transcript") or v.get("description") or "(kein Inhalt)"
+        blocks.append(f"### {v['title']}\n{content[:3000]}")
+    if not blocks:
+        return "Keine neuen Aktien & Märkte Videos in den letzten 24 Stunden."
+    prompt = (
+        "Fasse die wichtigsten Aktien- und Markt-Erkenntnisse aus diesen Videos zusammen.\n"
+        "Maximal 5 bullet points, auf Deutsch, prägnant.\n\n"
+        + "\n\n".join(blocks)
+    )
+    return await _gemini_call(prompt, api_key)
 
 
 # ── Main entry point ──────────────────────────────────────────────────────────
@@ -120,7 +158,7 @@ async def run_briefing(db) -> dict:
     """
     1. Fetch videos published in the last 24 h from all configured channels.
     2. Download transcripts (with fallback to description).
-    3. Summarise via Gemini Flash.
+    3. Summarise via Gemini Flash — separately for KI&Tech and Aktien&Märkte.
     4. Persist a Briefing row and return it.
     """
     from models import Briefing
@@ -129,41 +167,54 @@ async def run_briefing(db) -> dict:
     if not yt_key:
         raise ValueError("YOUTUBE_API_KEY nicht konfiguriert")
 
-    since      = datetime.now(timezone.utc) - timedelta(hours=24)
-    all_videos: list[dict] = []
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    ki_videos: list[dict]     = []
+    stocks_videos: list[dict] = []
 
     async with httpx.AsyncClient(timeout=30) as client:
-        for handle in CHANNEL_HANDLES:
+        for handle in KI_CHANNELS:
             cid = await _channel_id(handle, yt_key, client)
             if not cid:
                 logger.warning(f"Kanal nicht gefunden: {handle}")
                 continue
-            videos = await _recent_videos(cid, since, yt_key, client)
-            logger.info(f"{handle} → {len(videos)} neue Videos")
-            all_videos.extend(videos)
+            vids = await _recent_videos(cid, since, yt_key, client)
+            logger.info(f"{handle} → {len(vids)} neue Videos (KI)")
+            ki_videos.extend(vids)
 
-    if not all_videos:
-        logger.info("Keine neuen Videos in den letzten 24 h")
-        summary = "Keine neuen Videos in den letzten 24 Stunden gefunden."
-        briefing = Briefing(summary=summary, videos_json="[]", video_count=0)
-        db.add(briefing)
-        db.commit()
-        db.refresh(briefing)
-        return {"briefing": briefing, "videos": []}
+        for handle in STOCKS_CHANNELS:
+            cid = await _channel_id(handle, yt_key, client)
+            if not cid:
+                logger.warning(f"Kanal nicht gefunden: {handle}")
+                continue
+            vids = await _recent_videos(cid, since, yt_key, client)
+            logger.info(f"{handle} → {len(vids)} neue Videos (Aktien)")
+            stocks_videos.extend(vids)
+
+    all_videos = ki_videos + stocks_videos
 
     # Transcripts via thread pool (library is synchronous)
-    transcript_tasks = [asyncio.to_thread(_get_transcript, v["id"]) for v in all_videos]
-    transcripts = await asyncio.gather(*transcript_tasks, return_exceptions=True)
-    for v, t in zip(all_videos, transcripts):
-        v["transcript"] = t if isinstance(t, str) else ""
+    if all_videos:
+        transcript_tasks = [asyncio.to_thread(_get_transcript, v["id"]) for v in all_videos]
+        transcripts = await asyncio.gather(*transcript_tasks, return_exceptions=True)
+        for v, t in zip(all_videos, transcripts):
+            v["transcript"] = t if isinstance(t, str) else ""
 
-    summary = await _gemini_summary(all_videos)
+    # Generate separate summaries in parallel
+    summary_ai, summary_stocks = await asyncio.gather(
+        _gemini_summary_ki(ki_videos),
+        _gemini_summary_stocks(stocks_videos),
+    )
+
+    # Combined summary for backwards compat
+    summary = f"## KI & Tech\n\n{summary_ai}\n\n## Aktien & Märkte\n\n{summary_stocks}"
 
     # Store videos without the (potentially large) transcript field
     videos_stored = [{k: val for k, val in v.items() if k != "transcript"} for v in all_videos]
 
     briefing = Briefing(
         summary=summary,
+        summary_ai=summary_ai,
+        summary_stocks=summary_stocks,
         videos_json=json.dumps(videos_stored, ensure_ascii=False),
         video_count=len(all_videos),
     )

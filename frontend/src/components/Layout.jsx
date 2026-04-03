@@ -3,8 +3,10 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Kanban, CheckSquare, Lightbulb,
   TrendingUp, Newspaper, Image, Server, LogOut, StickyNote, Menu, X,
+  Sun, Moon, KeyRound,
 } from 'lucide-react'
 import GlobalSearch from './GlobalSearch'
+import api from '../api'
 
 /* ── >_ Logo SVG ─────────────────────────────────────────── */
 function TerminalLogo() {
@@ -41,8 +43,101 @@ function useStartedAt() {
   return startedAt
 }
 
+/* ── Theme ───────────────────────────────────────────────── */
+function useTheme() {
+  const [light, setLight] = useState(() => localStorage.getItem('theme') === 'light')
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', light)
+    localStorage.setItem('theme', light ? 'light' : 'dark')
+  }, [light])
+  return [light, setLight]
+}
+
+/* ── Change Password Modal ───────────────────────────────── */
+function ChangePasswordModal({ onClose }) {
+  const [oldPw, setOldPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await api.patch('/auth/change-password', { old_password: oldPw, new_password: newPw })
+      setSuccess(true)
+      setTimeout(onClose, 1500)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Fehler beim Ändern des Passworts')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        onClick={e => e.target === e.currentTarget && onClose()}
+      >
+        <div
+          className="animate-modal w-full max-w-sm rounded-2xl border border-surface-border p-6 shadow-2xl"
+          style={{ background: 'var(--bg-card)' }}
+        >
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold text-base">Passwort ändern</h2>
+            <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>
+          </div>
+
+          {success ? (
+            <p className="text-emerald-400 text-sm text-center py-4">Passwort erfolgreich geändert ✓</p>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Aktuelles Passwort</label>
+                <input
+                  type="password"
+                  value={oldPw}
+                  onChange={e => setOldPw(e.target.value)}
+                  className="input"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Neues Passwort</label>
+                <input
+                  type="password"
+                  value={newPw}
+                  onChange={e => setNewPw(e.target.value)}
+                  className="input"
+                  required
+                  minLength={6}
+                />
+              </div>
+              {error && (
+                <p className="text-red-400 text-xs">{error}</p>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full text-sm mt-2 disabled:opacity-60"
+              >
+                {loading ? 'Speichert…' : 'Passwort ändern'}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
 /* ── Sidebar content (shared between desktop + mobile) ───── */
-function SidebarContent({ onNavigate, onLogout }) {
+function SidebarContent({ onNavigate, onLogout, light, onToggleTheme, onChangePassword }) {
   const startedAt = useStartedAt()
   return (
     <>
@@ -104,6 +199,20 @@ function SidebarContent({ onNavigate, onLogout }) {
       {/* Bottom */}
       <div className="px-3 py-4 border-t border-surface-border shrink-0 space-y-1">
         <button
+          onClick={onToggleTheme}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm text-gray-600 hover:text-white hover:bg-surface-hover transition-all duration-200"
+        >
+          {light ? <Moon size={15} /> : <Sun size={15} />}
+          {light ? 'Dark Mode' : 'Light Mode'}
+        </button>
+        <button
+          onClick={onChangePassword}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm text-gray-600 hover:text-white hover:bg-surface-hover transition-all duration-200"
+        >
+          <KeyRound size={15} />
+          Passwort ändern
+        </button>
+        <button
           onClick={onLogout}
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm text-gray-600 hover:text-white hover:bg-surface-hover transition-all duration-200"
         >
@@ -123,6 +232,8 @@ function SidebarContent({ onNavigate, onLogout }) {
 /* ── Layout ──────────────────────────────────────────────── */
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showPwModal, setShowPwModal] = useState(false)
+  const [light, setLight] = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -149,7 +260,7 @@ export default function Layout() {
           transition-transform duration-200 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
-        style={{ background: '#090b14' }}
+        style={{ background: 'var(--bg-sidebar)' }}
       >
         {/* Mobile close button */}
         <button
@@ -162,6 +273,9 @@ export default function Layout() {
         <SidebarContent
           onNavigate={() => setSidebarOpen(false)}
           onLogout={logout}
+          light={light}
+          onToggleTheme={() => setLight(l => !l)}
+          onChangePassword={() => setShowPwModal(true)}
         />
       </aside>
 
@@ -171,7 +285,7 @@ export default function Layout() {
         {/* Mobile top bar */}
         <div
           className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-surface-border shrink-0 sticky top-0 z-20"
-          style={{ background: '#090b14' }}
+          style={{ background: 'var(--bg-sidebar)' }}
         >
           <button
             onClick={() => setSidebarOpen(true)}
@@ -197,6 +311,8 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {showPwModal && <ChangePasswordModal onClose={() => setShowPwModal(false)} />}
     </div>
   )
 }
