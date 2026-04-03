@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from datetime import datetime
 from database import init_db
 from services.scheduler import start_scheduler, stop_scheduler
 from routes import auth, projects, tracker, vps, tasks, ideas, notes, ai, briefing
+
+STARTED_AT = datetime.utcnow()
 
 
 @asynccontextmanager
@@ -38,3 +41,7 @@ app.include_router(briefing.router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/version")
+def version():
+    return {"started_at": STARTED_AT.isoformat() + "Z"}

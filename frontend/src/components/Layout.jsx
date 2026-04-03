@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Kanban, CheckSquare, Lightbulb,
@@ -29,8 +29,21 @@ const nav = [
   { to: '/content',  icon: Image,           label: 'Content',   color: 'text-stone-400', soon: true },
 ]
 
+/* ── Build info ──────────────────────────────────────────── */
+function useStartedAt() {
+  const [startedAt, setStartedAt] = useState(null)
+  useEffect(() => {
+    fetch('/api/version')
+      .then(r => r.json())
+      .then(d => setStartedAt(new Date(d.started_at)))
+      .catch(() => {})
+  }, [])
+  return startedAt
+}
+
 /* ── Sidebar content (shared between desktop + mobile) ───── */
 function SidebarContent({ onNavigate, onLogout }) {
+  const startedAt = useStartedAt()
   return (
     <>
       {/* Logo */}
@@ -89,7 +102,7 @@ function SidebarContent({ onNavigate, onLogout }) {
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 py-4 border-t border-surface-border shrink-0">
+      <div className="px-3 py-4 border-t border-surface-border shrink-0 space-y-1">
         <button
           onClick={onLogout}
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm text-gray-600 hover:text-white hover:bg-surface-hover transition-all duration-200"
@@ -97,6 +110,11 @@ function SidebarContent({ onNavigate, onLogout }) {
           <LogOut size={15} />
           Abmelden
         </button>
+        {startedAt && (
+          <p className="text-[10px] text-gray-700 px-3 pb-1">
+            deployed {startedAt.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} {startedAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
       </div>
     </>
   )
