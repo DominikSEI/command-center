@@ -23,7 +23,7 @@ async def ai_improve(body: AIRequest, _: str = Depends(get_current_user)):
 
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models"
-        f"/gemini-2.0-flash:generateContent?key={api_key}"
+        f"/gemini-2.5-flash-preview-04-17:generateContent?key={api_key}"
     )
 
     try:
