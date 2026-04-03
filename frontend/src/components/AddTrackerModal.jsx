@@ -9,8 +9,14 @@ const STATUS_OPTIONS = [
   { value: 'live',        label: 'Live'      },
 ]
 
+const PRIORITY_OPTIONS = [
+  { value: 1, label: 'P1 – Hoch',     cls: 'text-red-400'    },
+  { value: 2, label: 'P2 – Mittel',   cls: 'text-amber-400'  },
+  { value: 3, label: 'P3 – Niedrig',  cls: 'text-emerald-400' },
+]
+
 export default function AddTrackerModal({ onClose, onCreated }) {
-  const [form, setForm]       = useState({ name: '', description: '', status: 'idea' })
+  const [form, setForm]       = useState({ name: '', description: '', status: 'idea', priority: 2 })
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
 
@@ -70,6 +76,26 @@ export default function AddTrackerModal({ onClose, onCreated }) {
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Priorität</label>
+              <div className="flex gap-2">
+                {PRIORITY_OPTIONS.map(o => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => set('priority', o.value)}
+                    className={`flex-1 rounded-lg border py-2 text-xs font-medium transition-all ${
+                      form.priority === o.value
+                        ? `${o.cls} border-current bg-current/10`
+                        : 'text-gray-500 border-surface-border hover:border-gray-600'
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>

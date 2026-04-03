@@ -24,3 +24,12 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Migration: add priority column if missing (SQLite doesn't support IF NOT EXISTS for columns)
+    if DATABASE_URL.startswith("sqlite"):
+        with engine.connect() as conn:
+            from sqlalchemy import text, inspect
+            inspector = inspect(engine)
+            cols = [c["name"] for c in inspector.get_columns("tracker_projects")]
+            if "priority" not in cols:
+                conn.execute(text("ALTER TABLE tracker_projects ADD COLUMN priority INTEGER DEFAULT 2"))
+                conn.commit()

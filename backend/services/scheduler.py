@@ -46,6 +46,18 @@ async def collect_vps_metrics():
         db.close()
 
 
+async def run_daily_briefing():
+    db: Session = SessionLocal()
+    try:
+        from services.briefing import run_briefing
+        await run_briefing(db)
+        logger.info("Daily briefing generated")
+    except Exception as e:
+        logger.error(f"Daily briefing error: {e}")
+    finally:
+        db.close()
+
+
 async def send_daily_report():
     db: Session = SessionLocal()
     try:
@@ -82,6 +94,7 @@ def start_scheduler():
     scheduler.add_job(run_checks, "interval", minutes=5, id="health_checks", replace_existing=True)
     scheduler.add_job(collect_vps_metrics, "interval", minutes=5, id="vps_metrics", replace_existing=True)
     scheduler.add_job(send_daily_report, "cron", hour=8, minute=0, id="daily_report", replace_existing=True)
+    scheduler.add_job(run_daily_briefing, "cron", hour=7, minute=0, id="daily_briefing", replace_existing=True)
     scheduler.start()
     logger.info("Scheduler started")
 

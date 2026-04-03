@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Trash2, X, Lightbulb, ArrowRight } from 'lucide-react'
+import { Plus, Trash2, X, Lightbulb, ArrowRight, Sparkles, Loader2 } from 'lucide-react'
 import api from '../api'
 
 const STATUS_META = {
@@ -87,9 +87,114 @@ function AddIdeaModal({ onClose, onCreated }) {
   )
 }
 
+/* ── AI Elaboration Modal ────────────────────────────────── */
+
+const AI_SECTIONS = ['ZIELGRUPPE', 'PROBLEM', 'LÖSUNG', 'MONETARISIERUNG', 'NÄCHSTE SCHRITTE']
+
+function parseAiResult(text) {
+  const sections = {}
+  AI_SECTIONS.forEach(key => {
+    const regex = new RegExp(`${key}:\\s*([\\s\\S]*?)(?=${AI_SECTIONS.filter(k => k !== key).join(':|')}:|$)`, 'i')
+    const match = text.match(regex)
+    if (match) sections[key] = match[1].trim()
+  })
+  return sections
+}
+
+function AiIdeaModal({ idea, onClose, onSaveNote }) {
+  const [loading, setLoading] = useState(true)
+  const [result, setResult]   = useState(null)
+  const [error, setError]     = useState('')
+  const [saving, setSaving]   = useState(false)
+
+  useCallback(async () => {
+    try {
+      const prompt = `Arbeite diese Idee aus. Antworte in diesem Format:\nZIELGRUPPE: ...\nPROBLEM: ...\nLÖSUNG: ...\nMONETARISIERUNG: ...\nNÄCHSTE SCHRITTE: 1. ... 2. ... 3. ...\n\nIdee: ${idea.title}\n${idea.body ? `Beschreibung: ${idea.body}` : ''}`
+      const res = await api.post('/ai/improve', { prompt })
+      setResult(res.data.result)
+    } catch {
+      setError('KI-Fehler – bitte erneut versuchen.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])()
+
+  async function handleSaveNote() {
+    setSaving(true)
+    try {
+      await onSaveNote(idea.title, result)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const parsed = result ? parseAiResult(result) : null
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="animate-modal w-full max-w-lg rounded-2xl border border-purple-900/40 shadow-2xl flex flex-col max-h-[85vh]"
+          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border shrink-0">
+            <div className="flex items-center gap-2">
+              <Sparkles size={14} className="text-purple-400" />
+              <h2 className="font-semibold text-sm">KI-Ausarbeitung</h2>
+            </div>
+            <button onClick={onClose} className="btn-ghost p-1.5"><X size={15} /></button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-5">
+            <p className="text-xs text-gray-500 mb-4 font-medium">{idea.title}</p>
+
+            {loading && (
+              <div className="flex items-center gap-2 text-purple-400 text-sm py-8 justify-center">
+                <Loader2 size={16} className="animate-spin" />
+                KI arbeitet…
+              </div>
+            )}
+
+            {error && <p className="text-red-400 text-sm">{error}</p>}
+
+            {parsed && (
+              <div className="space-y-4">
+                {AI_SECTIONS.map(key => parsed[key] ? (
+                  <div key={key}>
+                    <div className="text-[10px] font-semibold tracking-widest text-purple-400/70 mb-1 uppercase">{key}</div>
+                    <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{parsed[key]}</p>
+                  </div>
+                ) : null)}
+              </div>
+            )}
+
+            {result && !parsed && (
+              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{result}</p>
+            )}
+          </div>
+
+          {result && (
+            <div className="px-5 py-4 border-t border-surface-border shrink-0 flex gap-2">
+              <button onClick={onClose} className="flex-1 btn-outline text-sm py-2">
+                Schließen
+              </button>
+              <button onClick={handleSaveNote} disabled={saving} className="flex-1 btn-primary text-sm py-2 disabled:opacity-60 flex items-center justify-center gap-1.5">
+                {saving ? <Loader2 size={13} className="animate-spin" /> : null}
+                Als Notiz speichern
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
 /* ── Idea Card ───────────────────────────────────────────── */
 
-function IdeaCard({ idea, onStatusChange, onConvert, onDelete }) {
+function IdeaCard({ idea, onStatusChange, onConvert, onDelete, onElaborate }) {
   const [converting, setConverting] = useState(false)
   const meta        = STATUS_META[idea.status] ?? STATUS_META.new
   const isConverted = !!idea.converted_to_project_id
@@ -131,6 +236,15 @@ function IdeaCard({ idea, onStatusChange, onConvert, onDelete }) {
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-surface-border mt-auto">
         <span className="text-[11px] text-gray-600">{formatDate(idea.created_at)}</span>
         <div className="flex items-center gap-1">
+          {!isRejected && (
+            <button
+              onClick={() => onElaborate(idea)}
+              className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-purple-400 px-2 py-1 rounded-lg transition-colors"
+            >
+              <Sparkles size={11} />
+              Ausarbeiten
+            </button>
+          )}
           {isConverted ? (
             <span className="text-[11px] text-emerald-600 flex items-center gap-1">
               <Lightbulb size={11} />
@@ -161,10 +275,11 @@ function IdeaCard({ idea, onStatusChange, onConvert, onDelete }) {
 /* ── Main Page ───────────────────────────────────────────── */
 
 export default function Ideas() {
-  const [ideas, setIdeas]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showAdd, setShowAdd] = useState(false)
-  const [filter, setFilter] = useState('all')
+  const [ideas, setIdeas]         = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [showAdd, setShowAdd]     = useState(false)
+  const [filter, setFilter]       = useState('all')
+  const [elaborating, setElaborating] = useState(null) // idea being elaborated
 
   const fetchIdeas = useCallback(async () => {
     try {
@@ -191,6 +306,10 @@ export default function Ideas() {
     if (!confirm('Idee löschen?')) return
     await api.delete(`/ideas/${id}`)
     setIdeas(prev => prev.filter(i => i.id !== id))
+  }
+
+  async function handleSaveNote(title, body) {
+    await api.post('/notes', { title: `KI-Ausarbeitung: ${title}`, body, category: 'idee' })
   }
 
   const counts   = Object.fromEntries(Object.keys(STATUS_META).map(s => [s, ideas.filter(i => i.status === s).length]))
@@ -263,6 +382,7 @@ export default function Ideas() {
               onStatusChange={handleStatusChange}
               onConvert={handleConvert}
               onDelete={handleDelete}
+              onElaborate={setElaborating}
             />
           ))}
         </div>
@@ -270,6 +390,14 @@ export default function Ideas() {
 
       {showAdd && (
         <AddIdeaModal onClose={() => setShowAdd(false)} onCreated={idea => setIdeas(prev => [idea, ...prev])} />
+      )}
+
+      {elaborating && (
+        <AiIdeaModal
+          idea={elaborating}
+          onClose={() => setElaborating(null)}
+          onSaveNote={handleSaveNote}
+        />
       )}
     </div>
   )

@@ -13,11 +13,17 @@ const STATUS_META = {
 
 const STATUS_ORDER = ['in_progress', 'review', 'live', 'idea']
 
+const PRIORITY_META = {
+  1: { label: 'P1', cls: 'text-red-400 bg-red-950/30 border-red-900/40' },
+  2: { label: 'P2', cls: 'text-amber-400 bg-amber-950/30 border-amber-900/40' },
+  3: { label: 'P3', cls: 'text-emerald-400 bg-emerald-950/30 border-emerald-900/40' },
+}
+
 function getProgressStyle(value) {
-  if (value >= 100) return 'linear-gradient(90deg, #10b981, #34d399)'
-  if (value >= 60)  return 'linear-gradient(90deg, #8b5cf6, #3b82f6)'
-  if (value >= 30)  return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-  return 'linear-gradient(90deg, #374151, #4b5563)'
+  if (value > 90)  return 'linear-gradient(90deg, #10b981, #34d399)'
+  if (value > 60)  return 'linear-gradient(90deg, #3b82f6, #60a5fa)'
+  if (value > 30)  return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+  return 'linear-gradient(90deg, #ef4444, #f87171)'
 }
 
 function ProgressBar({ value }) {
@@ -33,6 +39,7 @@ function ProgressBar({ value }) {
 
 function TrackerCard({ project, onClick }) {
   const meta      = STATUS_META[project.status] ?? STATUS_META.idea
+  const pMeta     = PRIORITY_META[project.priority] ?? PRIORITY_META[2]
   const hasTodos  = project.todos.length > 0
   const doneTodos = project.todos.filter(t => t.done).length
   const progress  = hasTodos ? Math.round((doneTodos / project.todos.length) * 100) : project.progress_percent
@@ -46,7 +53,10 @@ function TrackerCard({ project, onClick }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2.5">
         <h3 className="font-semibold text-sm leading-snug flex-1 text-left">{project.name}</h3>
-        <span className={`badge shrink-0 ${meta.badge}`}>{meta.label}</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`badge shrink-0 ${pMeta.cls}`}>{pMeta.label}</span>
+          <span className={`badge shrink-0 ${meta.badge}`}>{meta.label}</span>
+        </div>
       </div>
 
       {/* Description */}
@@ -59,9 +69,10 @@ function TrackerCard({ project, onClick }) {
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-600">Fortschritt</span>
           <span className={
-            progress >= 100 ? 'text-emerald-400 font-medium' :
-            progress >= 60  ? 'text-accent font-medium' :
-            'text-gray-500'
+            progress > 90 ? 'text-emerald-400 font-medium' :
+            progress > 60 ? 'text-blue-400 font-medium' :
+            progress > 30 ? 'text-amber-400 font-medium' :
+            'text-red-400 font-medium'
           }>
             {progress}%
           </span>
@@ -115,7 +126,7 @@ export default function Tracker() {
     setSelected(null)
   }
 
-  const byStatus = s => projects.filter(p => p.status === s)
+  const byStatus = s => projects.filter(p => p.status === s).sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2))
   const activeStatuses = STATUS_ORDER.filter(s => byStatus(s).length > 0)
 
   // Summary counts

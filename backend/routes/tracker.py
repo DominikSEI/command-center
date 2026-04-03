@@ -15,6 +15,7 @@ class TrackerProjectCreate(BaseModel):
     description: Optional[str] = None
     status: str = "idea"
     progress_percent: int = 0
+    priority: int = 2
 
 
 class TrackerProjectUpdate(BaseModel):
@@ -23,10 +24,15 @@ class TrackerProjectUpdate(BaseModel):
     notes: Optional[str] = None
     status: Optional[str] = None
     progress_percent: Optional[int] = None
+    priority: Optional[int] = None
 
 
 class TrackerTodoCreate(BaseModel):
     title: str
+
+
+class TrackerTodoUpdate(BaseModel):
+    title: Optional[str] = None
 
 
 class TrackerTodoOut(BaseModel):
@@ -46,6 +52,7 @@ class TrackerProjectOut(BaseModel):
     notes: Optional[str] = None
     status: str
     progress_percent: int
+    priority: int = 2
     created_at: datetime
     updated_at: datetime
     todos: List[TrackerTodoOut] = []
@@ -67,7 +74,7 @@ def _recalculate_progress(project: TrackerProject, db: Session):
 
 @router.get("", response_model=List[TrackerProjectOut])
 def list_tracker_projects(db: Session = Depends(get_db), _: str = Depends(get_current_user)):
-    return db.query(TrackerProject).order_by(TrackerProject.updated_at.desc()).all()
+    return db.query(TrackerProject).order_by(TrackerProject.priority.asc(), TrackerProject.updated_at.desc()).all()
 
 
 @router.get("/{project_id}", response_model=TrackerProjectOut)
@@ -124,11 +131,14 @@ def add_todo(project_id: int, body: TrackerTodoCreate, db: Session = Depends(get
 
 
 @router.patch("/{project_id}/todos/{todo_id}", response_model=TrackerProjectOut)
-def toggle_todo(project_id: int, todo_id: int, db: Session = Depends(get_db), _: str = Depends(get_current_user)):
+def update_todo(project_id: int, todo_id: int, body: Optional[TrackerTodoUpdate] = None, db: Session = Depends(get_db), _: str = Depends(get_current_user)):
     todo = db.query(TrackerTodo).filter(TrackerTodo.id == todo_id, TrackerTodo.tracker_project_id == project_id).first()
     if not todo:
         raise HTTPException(status_code=404, detail="Not found")
-    todo.done = not todo.done
+    if body and body.title is not None:
+        todo.title = body.title
+    else:
+        todo.done = not todo.done
     db.commit()
     project = db.query(TrackerProject).filter(TrackerProject.id == project_id).first()
     _recalculate_progress(project, db)

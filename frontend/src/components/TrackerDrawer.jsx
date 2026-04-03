@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { X, Trash2, Check, Plus } from 'lucide-react'
+import { X, Trash2, Check, Plus, Sparkles, Loader2 } from 'lucide-react'
 import api from '../api'
 
 const STATUS_OPTIONS = [
@@ -9,11 +9,17 @@ const STATUS_OPTIONS = [
   { value: 'live',        label: 'Live',      cls: 'text-emerald-400 bg-emerald-950/30 border-emerald-900/40' },
 ]
 
+const PRIORITY_OPTIONS = [
+  { value: 1, label: 'P1 – Hoch',    cls: 'text-red-400'    },
+  { value: 2, label: 'P2 – Mittel',  cls: 'text-amber-400'  },
+  { value: 3, label: 'P3 – Niedrig', cls: 'text-emerald-400' },
+]
+
 function getProgressBg(value) {
-  if (value >= 100) return 'linear-gradient(90deg, #10b981, #34d399)'
-  if (value >= 60)  return 'linear-gradient(90deg, #8b5cf6, #3b82f6)'
-  if (value >= 30)  return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-  return 'linear-gradient(90deg, #374151, #4b5563)'
+  if (value > 90)  return 'linear-gradient(90deg, #10b981, #34d399)'
+  if (value > 60)  return 'linear-gradient(90deg, #3b82f6, #60a5fa)'
+  if (value > 30)  return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+  return 'linear-gradient(90deg, #ef4444, #f87171)'
 }
 
 function ProgressBar({ value }) {
@@ -32,6 +38,8 @@ export default function TrackerDrawer({ project: initialProject, onClose, onUpda
   const [newTodo, setNewTodo] = useState('')
   const [addingTodo, setAddingTodo] = useState(false)
   const [saving, setSaving]   = useState(false)
+  const [aiLoading, setAiLoading] = useState(null)   // todoId currently loading
+  const [aiSuggestion, setAiSuggestion] = useState(null) // { todoId, text }
   const descRef  = useRef(null)
   const notesRef = useRef(null)
 
@@ -74,6 +82,28 @@ export default function TrackerDrawer({ project: initialProject, onClose, onUpda
     const res = await api.patch(`/tracker/${project.id}/todos/${todoId}`)
     setProject(res.data)
     onUpdated(res.data)
+  }
+
+  async function improveTodo(todo) {
+    setAiLoading(todo.id)
+    setAiSuggestion(null)
+    try {
+      const res = await api.post('/ai/improve', {
+        prompt: `Mache diesen Todo konkreter, actionbarer und besser formuliert. Antworte nur mit dem verbesserten Todo-Text, nichts anderes.\n\nTodo: ${todo.title}`,
+      })
+      setAiSuggestion({ todoId: todo.id, text: res.data.result })
+    } catch {
+      setAiSuggestion({ todoId: todo.id, text: null, error: 'KI-Fehler – bitte erneut versuchen.' })
+    } finally {
+      setAiLoading(null)
+    }
+  }
+
+  async function applyAiSuggestion(todoId, newTitle) {
+    const res = await api.patch(`/tracker/${project.id}/todos/${todoId}`, { title: newTitle })
+    setProject(res.data)
+    onUpdated(res.data)
+    setAiSuggestion(null)
   }
 
   async function deleteTodo(todoId) {
@@ -131,11 +161,34 @@ export default function TrackerDrawer({ project: initialProject, onClose, onUpda
               </select>
             </div>
 
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 w-20 shrink-0">Priorität</span>
+              <div className="flex gap-1.5">
+                {PRIORITY_OPTIONS.map(o => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => patchProject({ priority: o.value })}
+                    className={`badge transition-all ${
+                      project.priority === o.value
+                        ? `${o.cls} border-current bg-current/10`
+                        : 'text-gray-600 border-surface-border hover:border-gray-600'
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-gray-500">Fortschritt</span>
                 <span className={`text-sm font-semibold ${
-                  progress >= 100 ? 'text-emerald-400' : progress >= 60 ? 'text-accent' : 'text-gray-400'
+                  progress > 90 ? 'text-emerald-400' :
+                  progress > 60 ? 'text-blue-400' :
+                  progress > 30 ? 'text-amber-400' :
+                  'text-red-400'
                 }`}>
                   {progress}%
                 </span>
@@ -200,26 +253,71 @@ export default function TrackerDrawer({ project: initialProject, onClose, onUpda
                 <p className="text-xs text-gray-600 py-2">Noch keine Todos.</p>
               )}
               {project.todos.map(todo => (
-                <div key={todo.id} className="flex items-center gap-3 group py-1">
-                  <button
-                    onClick={() => toggleTodo(todo.id)}
-                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
-                      todo.done
-                        ? 'border-accent/60 bg-accent/20'
-                        : 'border-surface-border hover:border-accent/50'
-                    }`}
-                  >
-                    {todo.done && <Check size={9} className="text-accent" />}
-                  </button>
-                  <span className={`text-sm flex-1 leading-relaxed ${todo.done ? 'line-through text-gray-600' : 'text-gray-300'}`}>
-                    {todo.title}
-                  </span>
-                  <button
-                    onClick={() => deleteTodo(todo.id)}
-                    className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all p-0.5 rounded"
-                  >
-                    <Trash2 size={12} />
-                  </button>
+                <div key={todo.id}>
+                  <div className="flex items-center gap-3 group py-1">
+                    <button
+                      onClick={() => toggleTodo(todo.id)}
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                        todo.done
+                          ? 'border-accent/60 bg-accent/20'
+                          : 'border-surface-border hover:border-accent/50'
+                      }`}
+                    >
+                      {todo.done && <Check size={9} className="text-accent" />}
+                    </button>
+                    <span className={`text-sm flex-1 leading-relaxed ${todo.done ? 'line-through text-gray-600' : 'text-gray-300'}`}>
+                      {todo.title}
+                    </span>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={() => aiSuggestion?.todoId === todo.id ? setAiSuggestion(null) : improveTodo(todo)}
+                        disabled={aiLoading === todo.id}
+                        title="Mit KI verbessern"
+                        className="text-gray-600 hover:text-purple-400 p-0.5 rounded transition-colors disabled:opacity-40"
+                      >
+                        {aiLoading === todo.id
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : <Sparkles size={12} />}
+                      </button>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="text-gray-600 hover:text-red-400 transition-colors p-0.5 rounded"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* AI suggestion panel */}
+                  {aiSuggestion?.todoId === todo.id && (
+                    <div className="ml-7 mb-2 rounded-xl border border-purple-900/40 bg-purple-950/20 p-3 space-y-2">
+                      <div className="flex items-center gap-1.5 text-[11px] text-purple-400 font-medium">
+                        <Sparkles size={10} />
+                        KI-Vorschlag
+                      </div>
+                      {aiSuggestion.error ? (
+                        <p className="text-xs text-red-400">{aiSuggestion.error}</p>
+                      ) : (
+                        <>
+                          <p className="text-xs text-gray-300 leading-relaxed">{aiSuggestion.text}</p>
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => applyAiSuggestion(todo.id, aiSuggestion.text)}
+                              className="flex-1 text-[11px] py-1.5 rounded-lg bg-purple-900/40 text-purple-300 hover:bg-purple-900/60 border border-purple-800/40 transition-colors"
+                            >
+                              Übernehmen
+                            </button>
+                            <button
+                              onClick={() => setAiSuggestion(null)}
+                              className="flex-1 text-[11px] py-1.5 rounded-lg text-gray-500 hover:text-gray-300 border border-surface-border transition-colors"
+                            >
+                              Ablehnen
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

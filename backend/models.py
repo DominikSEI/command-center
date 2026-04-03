@@ -60,6 +60,7 @@ class TrackerProject(Base):
     status = Column(String, default="idea")  # idea / in_progress / review / live
     progress_percent = Column(Integer, default=0)
     notes = Column(Text, nullable=True)
+    priority = Column(Integer, default=2)  # 1=hoch, 2=mittel, 3=niedrig
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -105,6 +106,16 @@ class Note(Base):
     link = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Briefing(Base):
+    __tablename__ = "briefings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    summary = Column(Text, nullable=False)
+    videos_json = Column(Text, nullable=True)   # JSON array of video metadata
+    video_count = Column(Integer, default=0)
+    generated_at = Column(DateTime, default=datetime.utcnow)
 
 
 class TrackerTodo(Base):

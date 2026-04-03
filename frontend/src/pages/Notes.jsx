@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, ExternalLink, Trash2, X, StickyNote } from 'lucide-react'
+import { Plus, Search, ExternalLink, Trash2, X, StickyNote, Sparkles, Loader2 } from 'lucide-react'
 import api from '../api'
 
 const CATEGORIES = [
@@ -126,6 +126,26 @@ function AddNoteModal({ onClose, onCreated }) {
 
 function NoteCard({ note, onDelete }) {
   const meta = CAT_META[note.category] ?? CAT_META.sonstiges
+  const [aiLoading, setAiLoading]     = useState(false)
+  const [summary, setSummary]         = useState(null)
+  const [summaryError, setSummaryError] = useState('')
+
+  async function summarize() {
+    if (!note.body?.trim()) return
+    setAiLoading(true)
+    setSummary(null)
+    setSummaryError('')
+    try {
+      const res = await api.post('/ai/improve', {
+        prompt: `Fasse diese Notiz in genau 3 prägnanten Bullet Points zusammen. Antworte nur mit den 3 Bullet Points, jeder in einer neuen Zeile, mit "•" als Prefix.\n\nNotiz: ${note.title}\n${note.body}`,
+      })
+      setSummary(res.data.result)
+    } catch {
+      setSummaryError('KI-Fehler – bitte erneut versuchen.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   return (
     <div
@@ -149,19 +169,54 @@ function NoteCard({ note, onDelete }) {
         <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-wrap">{note.body}</p>
       )}
 
+      {/* AI Summary */}
+      {(summary || summaryError) && (
+        <div className="rounded-xl border border-purple-900/40 bg-purple-950/20 p-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[10px] text-purple-400 font-semibold uppercase tracking-wider">
+              <Sparkles size={9} />
+              Zusammenfassung
+            </div>
+            <button onClick={() => { setSummary(null); setSummaryError('') }} className="text-gray-600 hover:text-gray-400">
+              <X size={11} />
+            </button>
+          </div>
+          {summaryError
+            ? <p className="text-xs text-red-400">{summaryError}</p>
+            : summary.split('\n').filter(Boolean).map((line, i) => (
+                <p key={i} className="text-xs text-gray-300 leading-relaxed">{line}</p>
+              ))
+          }
+        </div>
+      )}
+
       <div className="flex items-center justify-between mt-auto pt-1">
         <span className="text-[11px] text-gray-700">{formatDate(note.created_at)}</span>
-        {note.link && (
-          <a
-            href={note.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[11px] text-accent hover:text-accent/80 transition-colors"
-          >
-            <ExternalLink size={11} />
-            Link öffnen
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          {note.body && (
+            <button
+              onClick={summary ? () => setSummary(null) : summarize}
+              disabled={aiLoading}
+              className="flex items-center gap-1 text-[11px] text-gray-600 hover:text-purple-400 transition-colors disabled:opacity-40"
+            >
+              {aiLoading
+                ? <Loader2 size={10} className="animate-spin" />
+                : <Sparkles size={10} />}
+              Zusammenfassen
+            </button>
+          )}
+          {note.link && (
+            <a
+              href={note.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[11px] text-accent hover:text-accent/80 transition-colors"
+            >
+              <ExternalLink size={11} />
+              Link öffnen
+            </a>
+          )}
+        </div>
       </div>
     </div>
   )
