@@ -24,12 +24,21 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    # Migration: add priority column if missing (SQLite doesn't support IF NOT EXISTS for columns)
-    if DATABASE_URL.startswith("sqlite"):
-        with engine.connect() as conn:
-            from sqlalchemy import text, inspect
-            inspector = inspect(engine)
-            cols = [c["name"] for c in inspector.get_columns("tracker_projects")]
+    _run_migrations()
+
+
+def _run_migrations():
+    from sqlalchemy import text, inspect
+    with engine.connect() as conn:
+        if DATABASE_URL.startswith("sqlite"):
+            # SQLite doesn't support IF NOT EXISTS for columns
+            cols = [c["name"] for c in inspect(engine).get_columns("tracker_projects")]
             if "priority" not in cols:
                 conn.execute(text("ALTER TABLE tracker_projects ADD COLUMN priority INTEGER DEFAULT 2"))
                 conn.commit()
+        else:
+            # PostgreSQL (Supabase) — supports IF NOT EXISTS directly
+            conn.execute(text(
+                "ALTER TABLE tracker_projects ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 2"
+            ))
+            conn.commit()
