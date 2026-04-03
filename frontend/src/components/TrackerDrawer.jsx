@@ -268,16 +268,16 @@ export default function TrackerDrawer({ project: initialProject, onClose, onUpda
                     <span className={`text-sm flex-1 leading-relaxed ${todo.done ? 'line-through text-gray-600' : 'text-gray-300'}`}>
                       {todo.title}
                     </span>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                       <button
                         onClick={() => aiSuggestion?.todoId === todo.id ? setAiSuggestion(null) : improveTodo(todo)}
                         disabled={aiLoading === todo.id}
-                        title="Mit KI verbessern"
-                        className="text-gray-600 hover:text-purple-400 p-0.5 rounded transition-colors disabled:opacity-40"
+                        className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg border border-purple-900/40 text-purple-400 hover:bg-purple-950/30 transition-colors disabled:opacity-40"
                       >
                         {aiLoading === todo.id
-                          ? <Loader2 size={12} className="animate-spin" />
-                          : <Sparkles size={12} />}
+                          ? <Loader2 size={10} className="animate-spin" />
+                          : <Sparkles size={10} />}
+                        KI
                       </button>
                       <button
                         onClick={() => deleteTodo(todo.id)}

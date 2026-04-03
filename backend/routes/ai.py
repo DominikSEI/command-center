@@ -38,12 +38,16 @@ async def ai_improve(body: AIRequest, _: str = Depends(get_current_user)):
         raise HTTPException(status_code=502, detail="Gemini API nicht erreichbar")
 
     if res.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Gemini API Fehler ({res.status_code})")
+        raise HTTPException(status_code=502, detail=f"Gemini API Fehler ({res.status_code}): {res.text[:400]}")
 
     data = res.json()
+    candidates = data.get("candidates", [])
+    if not candidates:
+        feedback = data.get("promptFeedback", {})
+        raise HTTPException(status_code=502, detail=f"Gemini: kein Ergebnis (Safety-Filter?) – {feedback}")
     try:
-        result = data["candidates"][0]["content"]["parts"][0]["text"]
+        result = candidates[0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError):
-        raise HTTPException(status_code=502, detail="Unerwartetes Antwortformat von Gemini")
+        raise HTTPException(status_code=502, detail=f"Unerwartetes Antwortformat: {str(data)[:300]}")
 
     return {"result": result.strip()}

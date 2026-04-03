@@ -1,9 +1,63 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, RefreshCw, CheckCircle2, AlertTriangle, XCircle, Clock, Activity, DollarSign, Bot } from 'lucide-react'
+import { Plus, RefreshCw, CheckCircle2, Clock, Activity, DollarSign, Bot, Cloud, Kanban, CalendarDays, ListTodo } from 'lucide-react'
 import api from '../api'
 import StatusDot from '../components/StatusDot'
 import ProjectDrawer from '../components/ProjectDrawer'
 import AddProjectModal from '../components/AddProjectModal'
+
+/* ── Greeting ────────────────────────────────────────────── */
+
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Guten Morgen'
+  if (h < 18) return 'Guten Tag'
+  return 'Guten Abend'
+}
+
+function useClock() {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  return now
+}
+
+function useWeather() {
+  const [weather, setWeather] = useState(null)
+  useEffect(() => {
+    fetch('https://wttr.in/Fuerth+Bayern?format=j1')
+      .then(r => r.json())
+      .then(d => {
+        const c = d.current_condition?.[0]
+        if (c) setWeather({
+          temp: c.temp_C,
+          desc: c.weatherDesc?.[0]?.value ?? '',
+          humidity: c.humidity,
+        })
+      })
+      .catch(() => {})
+  }, [])
+  return weather
+}
+
+function useQuickStats() {
+  const [stats, setStats] = useState({ todayTasks: 0, inProgress: 0, lastBriefing: null })
+  useEffect(() => {
+    Promise.all([
+      api.get('/tasks').catch(() => null),
+      api.get('/tracker').catch(() => null),
+      api.get('/briefing/latest').catch(() => null),
+    ]).then(([tasks, tracker, briefing]) => {
+      setStats({
+        todayTasks:  tasks?.data?.today?.filter(t => !t.done).length ?? 0,
+        inProgress:  tracker?.data?.filter(p => p.status === 'in_progress').length ?? 0,
+        lastBriefing: briefing?.data?.generated_at ?? null,
+      })
+    })
+  }, [])
+  return stats
+}
 
 const CLUSTER_ORDER = ['Webapps', 'Bots', 'APIs', 'Infrastruktur']
 
@@ -100,6 +154,10 @@ export default function Dashboard() {
   const [selected, setSelected] = useState(null)
   const [showAdd, setShowAdd]   = useState(false)
 
+  const now     = useClock()
+  const weather = useWeather()
+  const stats   = useQuickStats()
+
   const fetchProjects = useCallback(async () => {
     try {
       const res = await api.get('/projects')
@@ -115,56 +173,72 @@ export default function Dashboard() {
     return () => clearInterval(id)
   }, [fetchProjects])
 
-  const online  = projects.filter(p => p.current_status === 'online').length
-  const warning = projects.filter(p => p.current_status === 'warning').length
-  const down    = projects.filter(p => p.current_status === 'down').length
+  const online   = projects.filter(p => p.current_status === 'online').length
+  const down     = projects.filter(p => p.current_status === 'down').length
+  const warning  = projects.filter(p => p.current_status === 'warning').length
   const clusters = groupByCluster(projects)
+
+  const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+  const lastBriefingStr = stats.lastBriefing
+    ? new Date(stats.lastBriefing).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : '–'
 
   return (
     <div className="p-8 space-y-8 max-w-7xl">
-      {/* Page header */}
-      <div className="flex items-start justify-between">
+
+      {/* ── Greeting ── */}
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">System-Übersicht und Service-Status</p>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {getGreeting()}, Dominik! 👋
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">{dateStr} · {timeStr} Uhr</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchProjects} className="btn-ghost p-2.5" title="Aktualisieren">
-            <RefreshCw size={15} className={loading ? 'animate-spin text-accent' : ''} />
-          </button>
-          <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2 text-sm">
-            <Plus size={15} />
-            Projekt
-          </button>
+
+        {/* Weather */}
+        <div
+          className="flex items-center gap-3 rounded-2xl border border-surface-border px-5 py-3"
+          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
+        >
+          <Cloud size={20} className="text-sky-400" />
+          {weather ? (
+            <div>
+              <div className="text-lg font-semibold leading-none">{weather.temp}°C</div>
+              <div className="text-[11px] text-gray-500 mt-0.5">{weather.desc} · Fürth</div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600">Wetter lädt…</div>
+          )}
         </div>
       </div>
 
-      {/* Metric Cards */}
+      {/* ── Quick Stats ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           icon={CheckCircle2}
-          label="Projekte Online"
+          label="Services Online"
           value={loading ? '–' : `${online}/${projects.length}`}
           sub={down > 0 ? `${down} down` : warning > 0 ? `${warning} warning` : 'Alles läuft'}
           accent={!loading && down === 0 && warning === 0}
         />
         <MetricCard
-          icon={DollarSign}
-          label="API-Kosten heute"
-          value="–"
-          sub="Coming soon"
+          icon={ListTodo}
+          label="Offene Tasks heute"
+          value={stats.todayTasks}
+          sub="In der Heute-Liste"
         />
         <MetricCard
-          icon={Bot}
-          label="Bot-Status"
-          value="–"
-          sub="Coming soon"
+          icon={Kanban}
+          label="Projekte in Arbeit"
+          value={stats.inProgress}
+          sub="Status: In Arbeit"
         />
         <MetricCard
-          icon={Clock}
-          label="Letzter Check"
-          value={loading ? '–' : formatLastCheck(projects)}
-          sub="Alle 30s"
+          icon={CalendarDays}
+          label="Letztes Briefing"
+          value={lastBriefingStr === '–' ? '–' : lastBriefingStr.split(',')[0]}
+          sub={lastBriefingStr !== '–' ? lastBriefingStr : 'Noch keins generiert'}
         />
       </div>
 
@@ -201,19 +275,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Briefing Placeholder */}
-      {!loading && projects.length > 0 && (
-        <div
-          className="rounded-2xl border border-surface-border p-5"
-          style={{ background: 'linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%)' }}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <span className="section-label">Daily Briefing</span>
-            <span className="badge border-surface-border text-gray-600 bg-surface-raised">Coming Phase 3</span>
-          </div>
-          <p className="text-sm text-gray-600">KI-Zusammenfassung deiner YouTube-Kanäle, Aktiennews und Projekt-Updates erscheinen hier.</p>
-        </div>
-      )}
 
       {selected && (
         <ProjectDrawer
