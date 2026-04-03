@@ -6,6 +6,8 @@ services:
     container_name: cc_backend
     restart: unless-stopped
     env_file: .env
+    volumes:
+      - ./data:/app/data
     networks:
       - internal
     healthcheck:
