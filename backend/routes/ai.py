@@ -51,3 +51,14 @@ async def ai_improve(body: AIRequest, _: str = Depends(get_current_user)):
         raise HTTPException(status_code=502, detail=f"Unerwartetes Antwortformat: {str(data)[:300]}")
 
     return {"result": result.strip()}
+
+
+@router.get("/models")
+async def list_models(_: str = Depends(get_current_user)):
+    api_key = os.getenv("GEMINI_API_KEY")
+    async with httpx.AsyncClient(timeout=15) as client:
+        res = await client.get(
+            f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+        )
+    models = [m["name"] for m in res.json().get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
+    return {"models": models}
