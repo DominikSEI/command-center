@@ -7,23 +7,24 @@
 /* ── Theme variables ──────────────────────────────────────── */
 
 :root {
-  /* dark (default) */
-  --bg-surface:  #07080f;
-  --bg-card:     #0c0e17;
-  --bg-raised:   #11131e;
-  --bg-border:   #1b1e2e;
-  --bg-hover:    #13162a;
+  /* dark (default) — Tailwind surface vars use space-separated RGB channels */
+  --bg-surface:  7 8 15;      /* #07080f */
+  --bg-card:     12 14 23;    /* #0c0e17 */
+  --bg-raised:   17 19 30;    /* #11131e */
+  --bg-border:   27 30 46;    /* #1b1e2e */
+  --bg-hover:    19 22 42;    /* #13162a */
+  /* sidebar + gradient values stay as full color/gradient strings */
   --bg-sidebar:  #090b14;
   --bg-gradient-card:   linear-gradient(160deg, #0d0f1b 0%, #0a0c15 100%);
   --bg-gradient-drawer: linear-gradient(180deg, #0c0e17 0%, #090b13 100%);
 }
 
 html.light {
-  --bg-surface:  #f4f1ec;
-  --bg-card:     #ffffff;
-  --bg-raised:   #ede8e0;
-  --bg-border:   #d8d0c5;
-  --bg-hover:    #e6e0d8;
+  --bg-surface:  244 241 236; /* #f4f1ec */
+  --bg-card:     255 255 255; /* #ffffff */
+  --bg-raised:   237 232 224; /* #ede8e0 */
+  --bg-border:   216 208 197; /* #d8d0c5 */
+  --bg-hover:    230 224 216; /* #e6e0d8 */
   --bg-sidebar:  #eee8df;
   --bg-gradient-card:   linear-gradient(160deg, #ffffff 0%, #f6f2ec 100%);
   --bg-gradient-drawer: linear-gradient(180deg, #ffffff 0%, #f4f1ec 100%);

@@ -6,11 +6,11 @@ export default {
     extend: {
       colors: {
         surface: {
-          DEFAULT: 'var(--bg-surface)',
-          card:    'var(--bg-card)',
-          raised:  'var(--bg-raised)',
-          border:  'var(--bg-border)',
-          hover:   'var(--bg-hover)',
+          DEFAULT: 'rgb(var(--bg-surface))',
+          card:    'rgb(var(--bg-card))',
+          raised:  'rgb(var(--bg-raised))',
+          border:  'rgb(var(--bg-border))',
+          hover:   'rgb(var(--bg-hover))',
         },
         accent: {
           DEFAULT: '#8b5cf6',
