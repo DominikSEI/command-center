@@ -16,7 +16,7 @@ CHANNEL_HANDLES = ["@AktienKanal", "@everlastai"]
 YT_BASE = "https://www.googleapis.com/youtube/v3"
 GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models"
-    "/gemini-2.0-flash:generateContent"
+    "/gemini-2.5-flash:generateContent"
 )
 
 
