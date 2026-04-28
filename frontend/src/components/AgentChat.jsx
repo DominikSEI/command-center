@@ -20,14 +20,34 @@ const SUGGESTIONS = [
   'Zeig mir das letzte Briefing.',
 ]
 
+const STORAGE_KEY = 'agent_chat_messages'
+
+function loadMessages() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    // Normalize: clear any interrupted streaming state from previous session
+    return JSON.parse(raw).map(m => ({ ...m, streaming: false }))
+  } catch {
+    return []
+  }
+}
+
 // compact=false  →  full-page mode (Agent.jsx)
 // compact=true   →  FAB panel mode (AgentFAB.jsx)
 export default function AgentChat({ compact = false }) {
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState(loadMessages)
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
   const bottomRef   = useRef(null)
   const textareaRef = useRef(null)
+
+  // Persist messages to localStorage on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    } catch {}
+  }, [messages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
