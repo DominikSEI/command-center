@@ -74,7 +74,7 @@ def _execute_tool(name: str, db: Session) -> dict:
             rows.append({
                 "name": p.name,
                 "status": p.status,
-                "progress": p.progress,
+                "progress": p.progress_percent,
                 "open_todos": [t.title for t in todos if not t.done],
                 "total_todos": len(todos),
                 "done_todos": sum(1 for t in todos if t.done),
