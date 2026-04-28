@@ -1,0 +1,26 @@
+# OpenClaw Agent — Dockerfile stub
+#
+# OpenClaw is a Node.js-based agent that runs as a separate container.
+# It will be built as a standalone mini-project later.
+#
+# To activate:
+#   1. Copy this file to Dockerfile (remove .example)
+#   2. Add your OpenClaw source code to this directory
+#   3. Uncomment the openclaw service in docker-compose.yml
+#
+# Expected structure when ready:
+#   openclaw/
+#     Dockerfile       ← this file, renamed
+#     package.json
+#     src/
+#       index.js       ← entry point
+#       skills/        ← individual skill modules
+#
+# Example Dockerfile (fill in when ready):
+#
+# FROM node:20-alpine
+# WORKDIR /app
+# COPY package*.json ./
+# RUN npm ci --omit=dev
+# COPY src/ ./src/
+# CMD ["node", "src/index.js"]

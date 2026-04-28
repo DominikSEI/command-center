@@ -42,6 +42,17 @@ services:
       - backend
       - frontend
 
+# OpenClaw Agent — uncomment once Dockerfile is ready
+#  openclaw:
+#    build: ./openclaw
+#    container_name: cc_openclaw
+#    restart: unless-stopped
+#    env_file: .env
+#    networks:
+#      - internal
+#    depends_on:
+#      - backend
+
 networks:
   internal:
     driver: bridge
