@@ -2,10 +2,17 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Bot, User, Loader2, Zap } from 'lucide-react'
 
 const TOOL_LABELS = {
+  // Read
   get_dashboard_status:  'Dashboard-Status',
   get_tracker_projects:  'Tracker-Projekte',
   get_vps_metrics:       'VPS-Metriken',
   get_latest_briefing:   'Briefing',
+  // Write
+  tracker_todo_set_done: 'Todo abhaken',
+  task_create:           'Task erstellen',
+  task_update:           'Task aktualisieren',
+  idea_create:           'Idee speichern',
+  note_create:           'Notiz speichern',
 }
 
 const SUGGESTIONS = [

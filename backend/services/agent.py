@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from models import (
     Project, CheckResult, TrackerProject, TrackerTodo, VpsMetric, Briefing,
-    AgentRun, AgentMessage, ToolCall,
+    AgentRun, AgentMessage, ToolCall, Task, Idea, Note,
 )
 
 # claude-sonnet-4-6 pricing (USD per token)
@@ -26,9 +26,11 @@ if not _api_key:
 client = Anthropic(api_key=_api_key)
 
 SYSTEM_PROMPT = (
-    "Du bist der Command Center Agent. Du hast Zugriff auf das persönliche Dashboard des Users "
-    "und kannst Projekt-Status, Tracker, VPS-Metriken und Briefings abrufen. "
-    "Hole immer zuerst aktuelle Daten per Tool-Call, bevor du antwortest. "
+    "Du bist der Command Center Agent mit Lese- UND Schreibzugriff auf das Dashboard. "
+    "Lesende Tools: get_dashboard_status, get_tracker_projects, get_vps_metrics, get_latest_briefing. "
+    "Schreibende Tools: tracker_todo_set_done, task_create, task_update, idea_create, note_create. "
+    "Workflow für Schreiboperationen: erst Lese-Tool aufrufen um IDs zu ermitteln, dann Schreib-Tool. "
+    "Führe Schreiboperationen direkt aus wenn der User sie verlangt — keine Rückfrage nötig. "
     "Antworte präzise und auf Deutsch."
 )
 
@@ -59,10 +61,77 @@ TOOLS = [
         "description": "Gibt das neueste Daily Briefing zurück (KI-News + Markt-Zusammenfassung).",
         "input_schema": {"type": "object", "properties": {}, "required": []},
     },
+    {
+        "name": "tracker_todo_set_done",
+        "description": (
+            "Markiert ein Tracker-Todo als erledigt oder offen. "
+            "Erst get_tracker_projects aufrufen um die todo_id zu ermitteln."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "todo_id": {"type": "integer", "description": "ID des Todos"},
+                "done":    {"type": "boolean", "description": "true = erledigt, false = wieder öffnen"},
+            },
+            "required": ["todo_id", "done"],
+        },
+    },
+    {
+        "name": "task_create",
+        "description": "Erstellt einen neuen Task im Backlog.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title":               {"type": "string"},
+                "description":         {"type": "string"},
+                "tracker_project_id":  {"type": "integer", "description": "Optionale Verknüpfung mit Tracker-Projekt"},
+            },
+            "required": ["title"],
+        },
+    },
+    {
+        "name": "task_update",
+        "description": "Aktualisiert einen Task (erledigt markieren, Titel ändern, Bucket wechseln).",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "integer"},
+                "done":    {"type": "boolean"},
+                "title":   {"type": "string"},
+                "bucket":  {"type": "string", "description": "backlog oder today"},
+            },
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "idea_create",
+        "description": "Erstellt eine neue Idee.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "body":  {"type": "string"},
+            },
+            "required": ["title"],
+        },
+    },
+    {
+        "name": "note_create",
+        "description": "Erstellt eine neue Notiz.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title":    {"type": "string"},
+                "body":     {"type": "string"},
+                "category": {"type": "string", "description": "ki_news / idee / tool / sonstiges"},
+            },
+            "required": ["title"],
+        },
+    },
 ]
 
 
-def _execute_tool(name: str, db: Session) -> dict:
+def _execute_tool(name: str, inputs: dict, db: Session) -> dict:
     if name == "get_dashboard_status":
         projects = db.query(Project).filter(Project.is_active == True).all()
         rows = []
@@ -91,7 +160,7 @@ def _execute_tool(name: str, db: Session) -> dict:
                 "name": p.name,
                 "status": p.status,
                 "progress": p.progress_percent,
-                "open_todos": [t.title for t in todos if not t.done],
+                "open_todos": [{"id": t.id, "title": t.title} for t in todos if not t.done],
                 "total_todos": len(todos),
                 "done_todos": sum(1 for t in todos if t.done),
             })
@@ -117,6 +186,64 @@ def _execute_tool(name: str, db: Session) -> dict:
             "summary_ai": briefing.summary_ai,
             "generated_at": briefing.generated_at.isoformat(),
         }
+
+    if name == "tracker_todo_set_done":
+        todo_id = inputs.get("todo_id")
+        done    = bool(inputs.get("done", True))
+        todo = db.query(TrackerTodo).filter(TrackerTodo.id == todo_id).first()
+        if not todo:
+            return {"error": f"Todo mit ID {todo_id} nicht gefunden"}
+        todo.done = done
+        db.commit()
+        project = db.query(TrackerProject).filter(TrackerProject.id == todo.tracker_project_id).first()
+        if project:
+            todos = db.query(TrackerTodo).filter(TrackerTodo.tracker_project_id == project.id).all()
+            if todos:
+                project.progress_percent = round(sum(1 for t in todos if t.done) / len(todos) * 100)
+                project.updated_at = datetime.utcnow()
+                db.commit()
+        return {"success": True, "todo_id": todo_id, "title": todo.title, "done": todo.done}
+
+    if name == "task_create":
+        task = Task(
+            title=inputs["title"],
+            description=inputs.get("description"),
+            tracker_project_id=inputs.get("tracker_project_id"),
+            bucket="backlog",
+        )
+        db.add(task)
+        db.commit()
+        db.refresh(task)
+        return {"success": True, "task_id": task.id, "title": task.title}
+
+    if name == "task_update":
+        task_id = inputs.get("task_id")
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            return {"error": f"Task mit ID {task_id} nicht gefunden"}
+        if "done"   in inputs: task.done   = bool(inputs["done"])
+        if "title"  in inputs and inputs["title"]: task.title  = inputs["title"]
+        if "bucket" in inputs and inputs["bucket"] in ("backlog", "today"): task.bucket = inputs["bucket"]
+        db.commit()
+        return {"success": True, "task_id": task_id, "title": task.title, "done": task.done}
+
+    if name == "idea_create":
+        idea = Idea(title=inputs["title"], body=inputs.get("body"))
+        db.add(idea)
+        db.commit()
+        db.refresh(idea)
+        return {"success": True, "idea_id": idea.id, "title": idea.title}
+
+    if name == "note_create":
+        note = Note(
+            title=inputs["title"],
+            body=inputs.get("body"),
+            category=inputs.get("category", "sonstiges"),
+        )
+        db.add(note)
+        db.commit()
+        db.refresh(note)
+        return {"success": True, "note_id": note.id, "title": note.title}
 
     return {"error": f"Unbekanntes Tool: {name}"}
 
@@ -213,7 +340,7 @@ async def run_agent(message: str, db: Session) -> AsyncGenerator[str, None]:
 
                     tool_start = time.monotonic()
                     try:
-                        result = _execute_tool(block.name, db)
+                        result = _execute_tool(block.name, block.input, db)
                         tc.tool_output = result
                         tc.status = "completed"
                     except Exception as e:
