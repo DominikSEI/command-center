@@ -114,14 +114,16 @@ function BriefingContent({ item, showVideos }) {
 
   return (
     <div className="space-y-4">
-      {/* Agent section — full width, violet */}
-      <SectionCard
-        icon={Bot}
-        label="Persönliche Tagesvorschau"
-        color="text-violet-400"
-        text={item.summary_agent}
-        fallback="Tagesvorschau konnte nicht generiert werden."
-      />
+      {/* Agent section — full width, violet (only when generated) */}
+      {!!item.summary_agent && (
+        <SectionCard
+          icon={Bot}
+          label="Persönliche Tagesvorschau"
+          color="text-violet-400"
+          text={item.summary_agent}
+          fallback=""
+        />
+      )}
 
       {/* KI & Stocks — 2 columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
