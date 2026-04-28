@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Plus, RefreshCw, CheckCircle2, Activity, Cloud, Kanban, CalendarDays, ListTodo, ExternalLink, Bot, Newspaper } from 'lucide-react'
+import { BarChart, Bar, Tooltip, ResponsiveContainer } from 'recharts'
 import api from '../api'
 import StatusDot from '../components/StatusDot'
 import ProjectDrawer from '../components/ProjectDrawer'
@@ -86,6 +87,84 @@ function groupByCluster(projects) {
     map[p.cluster].push(p)
   }
   return map
+}
+
+function useAgentStats() {
+  const [stats, setStats] = useState(null)
+  useEffect(() => {
+    api.get('/agent/stats').then(r => setStats(r.data)).catch(() => {})
+  }, [])
+  return stats
+}
+
+function fmt(usd) {
+  if (usd === 0) return '$0.00'
+  if (usd < 0.01) return `$${(usd * 100).toFixed(3)}¢`
+  return `$${usd.toFixed(4)}`
+}
+
+function AgentCostWidget({ stats }) {
+  return (
+    <div
+      className="rounded-2xl border border-surface-border p-5 col-span-2"
+      style={{
+        background: 'var(--bg-gradient-card)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)',
+      }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+            style={{ background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)' }}>
+            <Bot size={16} className="text-white" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-0.5">Agent-Kosten heute</p>
+            <p className="text-2xl font-semibold text-white leading-none">
+              {stats ? fmt(stats.cost_today) : '–'}
+            </p>
+            <div className="flex gap-3 mt-1.5 text-xs text-gray-500">
+              <span>7 Tage: <span className="text-gray-300">{stats ? fmt(stats.cost_week) : '–'}</span></span>
+              <span>Monat: <span className="text-gray-300">{stats ? fmt(stats.cost_month) : '–'}</span></span>
+              <span>Runs heute: <span className="text-gray-300">{stats?.runs_today ?? '–'}</span></span>
+            </div>
+          </div>
+        </div>
+        {stats?.last_run_at && (
+          <p className="text-[11px] text-gray-600 shrink-0">
+            zuletzt {new Date(stats.last_run_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
+      </div>
+
+      {stats?.daily && (
+        <div className="mt-4">
+          <ResponsiveContainer width="100%" height={44}>
+            <BarChart data={stats.daily} barSize={8} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <Bar dataKey="cost_usd" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
+              <Tooltip
+                formatter={(v) => [v === 0 ? '$0' : `$${(v).toFixed(5)}`, 'Kosten']}
+                labelFormatter={(l) => l}
+                contentStyle={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8,
+                  fontSize: 11,
+                  color: '#e5e7eb',
+                }}
+                cursor={{ fill: 'rgba(139,92,246,0.1)' }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex justify-between mt-0.5">
+            {stats.daily.map(d => (
+              <span key={d.date} className="text-[10px] text-gray-700">{d.date}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function MetricCard({ icon: Icon, label, value, sub, accent }) {
@@ -212,10 +291,11 @@ export default function Dashboard() {
   const [selected, setSelected] = useState(null)
   const [showAdd, setShowAdd]   = useState(false)
 
-  const now     = useClock()
-  const weather = useWeather()
-  const stats   = useQuickStats()
-  const news    = useNews()
+  const now        = useClock()
+  const weather    = useWeather()
+  const stats      = useQuickStats()
+  const agentStats = useAgentStats()
+  const news       = useNews()
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -273,7 +353,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Quick Stats ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 [&>*:last-child]:col-span-2">
         <MetricCard
           icon={CheckCircle2}
           label="Services Online"
@@ -299,6 +379,7 @@ export default function Dashboard() {
           value={lastBriefingStr === '–' ? '–' : lastBriefingStr.split(',')[0]}
           sub={lastBriefingStr !== '–' ? lastBriefingStr : 'Noch keins generiert'}
         />
+        <AgentCostWidget stats={agentStats} />
       </div>
 
       {/* Project Grid */}
