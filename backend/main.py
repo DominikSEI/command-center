@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from database import init_db
 from services.scheduler import start_scheduler, stop_scheduler
-from routes import auth, projects, tracker, vps, tasks, ideas, notes, ai, briefing, news
+from routes import auth, projects, tracker, vps, tasks, ideas, notes, ai, briefing, news, agent
 
 STARTED_AT = datetime.utcnow()
 
@@ -37,6 +37,7 @@ app.include_router(notes.router)
 app.include_router(ai.router)
 app.include_router(briefing.router)
 app.include_router(news.router)
+app.include_router(agent.router, prefix="/agent")
 
 
 @app.get("/health")
