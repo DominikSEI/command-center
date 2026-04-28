@@ -10,6 +10,7 @@ import Notes from './pages/Notes'
 import Briefing from './pages/Briefing'
 import Content from './pages/Content'
 import VPS from './pages/VPS'
+import Agent from './pages/Agent'
 
 function PrivateRoute({ children }) {
   return localStorage.getItem('token') ? children : <Navigate to="/login" replace />
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="content" element={<Content />} />
         <Route path="vps" element={<VPS />} />
         <Route path="notes" element={<Notes />} />
+        <Route path="agent" element={<Agent />} />
       </Route>
     </Routes>
   )

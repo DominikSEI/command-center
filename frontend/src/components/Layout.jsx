@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Kanban, CheckSquare, Lightbulb,
   TrendingUp, Newspaper, Image, Server, LogOut, StickyNote, Menu, X,
-  Sun, Moon, KeyRound,
+  Sun, Moon, KeyRound, Bot,
 } from 'lucide-react'
 import GlobalSearch from './GlobalSearch'
 import api from '../api'
@@ -28,6 +28,7 @@ const nav = [
   { to: '/vps',      icon: Server,          label: 'VPS',       color: 'text-stone-400'  },
   { to: '/trading',  icon: TrendingUp,      label: 'Trading',   color: 'text-green-600'  },
   { to: '/briefing', icon: Newspaper,       label: 'Briefing',  color: 'text-purple-400' },
+  { to: '/agent',    icon: Bot,             label: 'Agent',     color: 'text-violet-400' },
   { to: '/content',  icon: Image,           label: 'Content',   color: 'text-stone-400', soon: true },
 ]
 
