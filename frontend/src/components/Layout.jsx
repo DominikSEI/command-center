@@ -6,6 +6,7 @@ import {
   Sun, Moon, KeyRound, Bot,
 } from 'lucide-react'
 import GlobalSearch from './GlobalSearch'
+import AgentFAB from './AgentFAB'
 import api from '../api'
 
 /* ── >_ Logo SVG ─────────────────────────────────────────── */
@@ -314,6 +315,7 @@ export default function Layout() {
       </main>
 
       {showPwModal && <ChangePasswordModal onClose={() => setShowPwModal(false)} />}
+      <AgentFAB />
     </div>
   )
 }
