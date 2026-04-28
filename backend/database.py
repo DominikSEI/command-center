@@ -48,6 +48,7 @@ def _run_migrations():
             conn.execute(text(
                 "ALTER TABLE tracker_projects ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 2"
             ))
+            conn.execute(text("ALTER TABLE briefings ADD COLUMN IF NOT EXISTS summary_agent TEXT"))
             conn.execute(text("ALTER TABLE briefings ADD COLUMN IF NOT EXISTS summary_ai TEXT"))
             conn.execute(text("ALTER TABLE briefings ADD COLUMN IF NOT EXISTS summary_stocks TEXT"))
             conn.commit()

@@ -15,6 +15,7 @@ router = APIRouter(prefix="/briefing", tags=["briefing"])
 class BriefingOut(BaseModel):
     id: int
     summary: str
+    summary_agent: str | None = None
     summary_ai: str | None = None
     summary_stocks: str | None = None
     video_count: int
@@ -25,10 +26,23 @@ class BriefingOut(BaseModel):
         from_attributes = True
 
 
+class BriefingHistoryItem(BaseModel):
+    id: int
+    summary_agent: str | None = None
+    summary_ai: str | None = None
+    summary_stocks: str | None = None
+    video_count: int
+    generated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 def _to_out(briefing: Briefing) -> BriefingOut:
     return BriefingOut(
         id=briefing.id,
         summary=briefing.summary,
+        summary_agent=briefing.summary_agent,
         summary_ai=briefing.summary_ai,
         summary_stocks=briefing.summary_stocks,
         video_count=briefing.video_count,
@@ -43,6 +57,27 @@ def get_latest(db: Session = Depends(get_db), _: str = Depends(get_current_user)
     if not briefing:
         raise HTTPException(status_code=404, detail="Noch kein Briefing vorhanden")
     return _to_out(briefing)
+
+
+@router.get("/history", response_model=List[BriefingHistoryItem])
+def get_history(db: Session = Depends(get_db), _: str = Depends(get_current_user)):
+    briefings = (
+        db.query(Briefing)
+        .order_by(Briefing.generated_at.desc())
+        .limit(14)
+        .all()
+    )
+    return [
+        BriefingHistoryItem(
+            id=b.id,
+            summary_agent=b.summary_agent,
+            summary_ai=b.summary_ai,
+            summary_stocks=b.summary_stocks,
+            video_count=b.video_count,
+            generated_at=b.generated_at,
+        )
+        for b in briefings
+    ]
 
 
 @router.post("/generate", response_model=BriefingOut)

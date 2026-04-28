@@ -94,7 +94,7 @@ def start_scheduler():
     scheduler.add_job(run_checks, "interval", minutes=5, id="health_checks", replace_existing=True)
     scheduler.add_job(collect_vps_metrics, "interval", minutes=5, id="vps_metrics", replace_existing=True)
     scheduler.add_job(send_daily_report, "cron", hour=8, minute=0, id="daily_report", replace_existing=True)
-    scheduler.add_job(run_daily_briefing, "cron", hour=7, minute=0, id="daily_briefing", replace_existing=True)
+    scheduler.add_job(run_daily_briefing, "cron", hour=7, minute=0, id="daily_briefing", replace_existing=True, timezone="Europe/Berlin")
     scheduler.start()
     logger.info("Scheduler started")
 

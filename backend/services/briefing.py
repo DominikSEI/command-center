@@ -1,6 +1,7 @@
 """
 Daily Briefing Service
 Fetches recent YouTube videos, grabs transcripts, summarises via Gemini.
+Personal agent section generated via Claude Sonnet 4.6.
 """
 import asyncio
 import json
@@ -9,6 +10,7 @@ import os
 from datetime import datetime, timezone, timedelta
 
 import httpx
+from anthropic import Anthropic
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +154,79 @@ async def _gemini_summary_stocks(videos: list[dict]) -> str:
     return await _gemini_call(prompt, api_key)
 
 
+# ── Claude agent section ──────────────────────────────────────────────────────
+
+async def _claude_summary_agent(db) -> str:
+    api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
+    if not api_key:
+        raise ValueError("Kein Anthropic API Key konfiguriert")
+
+    from models import Task, TrackerProject, Idea
+    from sqlalchemy import desc
+
+    # Tasks im Heute-Bucket (max 5)
+    tasks = (
+        db.query(Task)
+        .filter(Task.bucket == "today", Task.done == False)
+        .order_by(Task.moved_to_today_at.desc().nullslast())
+        .limit(5)
+        .all()
+    )
+
+    # Projekte in Arbeit (max 5)
+    projects = (
+        db.query(TrackerProject)
+        .filter(TrackerProject.status == "in_progress")
+        .order_by(desc(TrackerProject.updated_at))
+        .limit(5)
+        .all()
+    )
+
+    # Neueste Ideen der letzten 7 Tage (max 3)
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    ideas = (
+        db.query(Idea)
+        .filter(Idea.created_at >= week_ago)
+        .order_by(desc(Idea.created_at))
+        .limit(3)
+        .all()
+    )
+
+    today_str = datetime.now(timezone(timedelta(hours=2))).strftime("%A, %d. %B %Y")
+
+    tasks_text    = "\n".join(f"- {t.title}" for t in tasks) or "Keine Tasks für heute eingetragen."
+    projects_text = "\n".join(f"- {p.name} ({p.progress_percent}%)" for p in projects) or "Keine Projekte in Arbeit."
+    ideas_text    = "\n".join(f"- {i.title}" for i in ideas) or "Keine neuen Ideen diese Woche."
+
+    prompt = f"""Heute ist {today_str}.
+
+Dashboard-Daten:
+Tasks heute:
+{tasks_text}
+
+Projekte in Arbeit:
+{projects_text}
+
+Neue Ideen (letzte 7 Tage):
+{ideas_text}
+
+Schreibe eine persönliche Tagesvorschau für Dominik (Solo-Entrepreneur in Fürth, Projekte: SIMBA, Heartlace, Quiftly, Command Center, NXLY).
+Stil: deutsch, locker, direkt, max 200 Wörter.
+Struktur: kurze Begrüßung mit Datum → Top-Aufgaben für heute → Projekte-Stand → Reminder falls etwas auffällt.
+Keine langen Einleitungen."""
+
+    def _sync_call():
+        client = Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=512,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.content[0].text.strip()
+
+    return await asyncio.to_thread(_sync_call)
+
+
 # ── Main entry point ──────────────────────────────────────────────────────────
 
 async def run_briefing(db) -> dict:
@@ -199,20 +274,36 @@ async def run_briefing(db) -> dict:
         for v, t in zip(all_videos, transcripts):
             v["transcript"] = t if isinstance(t, str) else ""
 
-    # Generate separate summaries in parallel
-    summary_ai, summary_stocks = await asyncio.gather(
+    # Generate all three sections in parallel — failure-isolated
+    results = await asyncio.gather(
         _gemini_summary_ki(ki_videos),
         _gemini_summary_stocks(stocks_videos),
+        _claude_summary_agent(db),
+        return_exceptions=True,
     )
+    summary_ai     = results[0] if not isinstance(results[0], Exception) else None
+    summary_stocks = results[1] if not isinstance(results[1], Exception) else None
+    summary_agent  = results[2] if not isinstance(results[2], Exception) else None
 
-    # Combined summary for backwards compat
-    summary = f"## KI & Tech\n\n{summary_ai}\n\n## Aktien & Märkte\n\n{summary_stocks}"
+    if isinstance(results[0], Exception):
+        logger.error(f"Gemini KI section failed: {results[0]}")
+    if isinstance(results[1], Exception):
+        logger.error(f"Gemini Stocks section failed: {results[1]}")
+    if isinstance(results[2], Exception):
+        logger.error(f"Claude agent section failed: {results[2]}")
+
+    # Combined summary for backwards compat (only from non-None sections)
+    parts = []
+    if summary_ai:     parts.append(f"## KI & Tech\n\n{summary_ai}")
+    if summary_stocks: parts.append(f"## Aktien & Märkte\n\n{summary_stocks}")
+    summary = "\n\n".join(parts) if parts else "Briefing konnte nicht vollständig generiert werden."
 
     # Store videos without the (potentially large) transcript field
     videos_stored = [{k: val for k, val in v.items() if k != "transcript"} for v in all_videos]
 
     briefing = Briefing(
         summary=summary,
+        summary_agent=summary_agent,
         summary_ai=summary_ai,
         summary_stocks=summary_stocks,
         videos_json=json.dumps(videos_stored, ensure_ascii=False),

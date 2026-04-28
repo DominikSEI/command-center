@@ -114,6 +114,7 @@ class Briefing(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     summary = Column(Text, nullable=False)
+    summary_agent  = Column(Text, nullable=True)  # Persönliche Tagesvorschau (Claude)
     summary_ai = Column(Text, nullable=True)      # KI & Tech (@everlastai)
     summary_stocks = Column(Text, nullable=True)  # Aktien & Märkte (@AktienKanal)
     videos_json = Column(Text, nullable=True)     # JSON array of video metadata
