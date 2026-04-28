@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -130,3 +131,63 @@ class TrackerTodo(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     tracker_project = relationship("TrackerProject", back_populates="todos")
+
+
+class AgentRun(Base):
+    __tablename__ = "agent_runs"
+    __table_args__ = (
+        Index("ix_agent_runs_created_at", "created_at"),
+    )
+
+    id              = Column(Integer, primary_key=True, index=True)
+    title           = Column(String, nullable=True)
+    status          = Column(String, nullable=False, default="running")  # running / completed / error
+    input_mode      = Column(String, nullable=False, default="text")     # text (voice later)
+    initial_prompt  = Column(Text, nullable=False)
+    final_response  = Column(Text, nullable=True)
+    total_tokens_in  = Column(Integer, default=0)
+    total_tokens_out = Column(Integer, default=0)
+    total_cost_usd  = Column(Float, nullable=True)
+    duration_ms     = Column(Integer, nullable=True)
+    error           = Column(Text, nullable=True)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    completed_at    = Column(DateTime, nullable=True)
+
+    messages   = relationship("AgentMessage", back_populates="run", cascade="all, delete-orphan")
+    tool_calls = relationship("ToolCall",     back_populates="run", cascade="all, delete-orphan")
+
+
+class AgentMessage(Base):
+    __tablename__ = "agent_messages"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    run_id     = Column(Integer, ForeignKey("agent_runs.id", ondelete="CASCADE"), nullable=False)
+    role       = Column(String, nullable=False)   # user / assistant
+    content    = Column(JSONB, nullable=False)     # string or list of content blocks
+    sequence   = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    run        = relationship("AgentRun",  back_populates="messages")
+    tool_calls = relationship("ToolCall",  back_populates="message", cascade="all, delete-orphan")
+
+
+class ToolCall(Base):
+    __tablename__ = "tool_calls"
+    __table_args__ = (
+        Index("ix_tool_calls_run_created", "run_id", "created_at"),
+    )
+
+    id          = Column(Integer, primary_key=True, index=True)
+    run_id      = Column(Integer, ForeignKey("agent_runs.id",    ondelete="CASCADE"), nullable=False)
+    message_id  = Column(Integer, ForeignKey("agent_messages.id", ondelete="CASCADE"), nullable=True)
+    tool_name   = Column(String, nullable=False)
+    tool_input  = Column(JSONB, nullable=False)
+    tool_output = Column(JSONB, nullable=True)
+    status      = Column(String, nullable=False, default="running")  # running / completed / error
+    duration_ms = Column(Integer, nullable=True)
+    error       = Column(Text, nullable=True)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    run     = relationship("AgentRun",     back_populates="tool_calls")
+    message = relationship("AgentMessage", back_populates="tool_calls")

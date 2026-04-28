@@ -1,11 +1,20 @@
 import os
 import json
 import asyncio
+import time
+from datetime import datetime
 from typing import AsyncGenerator
 from anthropic import Anthropic
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from models import Project, CheckResult, TrackerProject, TrackerTodo, VpsMetric, Briefing
+from models import (
+    Project, CheckResult, TrackerProject, TrackerTodo, VpsMetric, Briefing,
+    AgentRun, AgentMessage, ToolCall,
+)
+
+# claude-sonnet-4-6 pricing (USD per token)
+_INPUT_COST_PER_TOKEN  = 3.0  / 1_000_000
+_OUTPUT_COST_PER_TOKEN = 15.0 / 1_000_000
 
 client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
 
@@ -105,38 +114,158 @@ def _execute_tool(name: str, db: Session) -> dict:
     return {"error": f"Unbekanntes Tool: {name}"}
 
 
+def _serialize_content(content) -> object:
+    """Convert Anthropic SDK content blocks to JSON-serializable form for JSONB storage."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        result = []
+        for block in content:
+            if hasattr(block, "model_dump"):
+                result.append(block.model_dump())
+            elif isinstance(block, dict):
+                result.append(block)
+            else:
+                result.append(str(block))
+        return result
+    return str(content)
+
+
 async def run_agent(message: str, db: Session) -> AsyncGenerator[str, None]:
-    messages = [{"role": "user", "content": message}]
+    start_time = time.monotonic()
+    title = message[:60] + ("…" if len(message) > 60 else "")
 
-    while True:
-        response = await asyncio.to_thread(
-            client.messages.create,
-            model="claude-sonnet-4-6",
-            max_tokens=2048,
-            system=SYSTEM_PROMPT,
-            tools=TOOLS,
-            messages=messages,
-        )
+    # ── Create AgentRun ───────────────────────────────────────
+    run = AgentRun(
+        title=title,
+        status="running",
+        input_mode="text",
+        initial_prompt=message,
+        total_tokens_in=0,
+        total_tokens_out=0,
+    )
+    db.add(run)
+    db.commit()
+    db.refresh(run)
 
-        if response.stop_reason == "tool_use":
-            tool_results = []
-            for block in response.content:
-                if block.type == "tool_use":
+    # Save initial user message (sequence 0)
+    db.add(AgentMessage(run_id=run.id, role="user", content=message, sequence=0))
+    db.commit()
+
+    claude_messages = [{"role": "user", "content": message}]
+    sequence = 1
+    total_tokens_in = 0
+    total_tokens_out = 0
+    final_text = ""
+
+    try:
+        while True:
+            response = await asyncio.to_thread(
+                client.messages.create,
+                model="claude-sonnet-4-6",
+                max_tokens=2048,
+                system=SYSTEM_PROMPT,
+                tools=TOOLS,
+                messages=claude_messages,
+            )
+
+            total_tokens_in  += response.usage.input_tokens
+            total_tokens_out += response.usage.output_tokens
+
+            # Save assistant message
+            asst_msg = AgentMessage(
+                run_id=run.id,
+                role="assistant",
+                content=_serialize_content(response.content),
+                sequence=sequence,
+            )
+            db.add(asst_msg)
+            db.commit()
+            db.refresh(asst_msg)
+            sequence += 1
+
+            if response.stop_reason == "tool_use":
+                tool_results = []
+                for block in response.content:
+                    if block.type != "tool_use":
+                        continue
+
                     yield f"data: {json.dumps({'type': 'tool_call', 'tool': block.name})}\n\n"
-                    result = _execute_tool(block.name, db)
+
+                    # Create ToolCall (status=running)
+                    tc = ToolCall(
+                        run_id=run.id,
+                        message_id=asst_msg.id,
+                        tool_name=block.name,
+                        tool_input=block.input,
+                        status="running",
+                    )
+                    db.add(tc)
+                    db.commit()
+                    db.refresh(tc)
+
+                    tool_start = time.monotonic()
+                    try:
+                        result = _execute_tool(block.name, db)
+                        tc.tool_output = result
+                        tc.status = "completed"
+                    except Exception as e:
+                        tc.status = "error"
+                        tc.error = str(e)
+                        result = {"error": str(e)}
+                    finally:
+                        tc.duration_ms = int((time.monotonic() - tool_start) * 1000)
+                        tc.completed_at = datetime.utcnow()
+                        db.commit()
+
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
                         "content": json.dumps(result, ensure_ascii=False),
                     })
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({"role": "user", "content": tool_results})
-            continue
 
-        # stop_reason == "end_turn" oder "max_tokens"
-        for block in response.content:
-            if hasattr(block, "text"):
-                yield f"data: {json.dumps({'type': 'text', 'delta': block.text})}\n\n"
-        break
+                claude_messages.append({"role": "assistant", "content": response.content})
+                claude_messages.append({"role": "user",      "content": tool_results})
+
+                # Save tool-results as user message
+                db.add(AgentMessage(
+                    run_id=run.id,
+                    role="user",
+                    content=_serialize_content(tool_results),
+                    sequence=sequence,
+                ))
+                db.commit()
+                sequence += 1
+                continue
+
+            # stop_reason == "end_turn" or "max_tokens"
+            for block in response.content:
+                if hasattr(block, "text"):
+                    final_text += block.text
+                    yield f"data: {json.dumps({'type': 'text', 'delta': block.text})}\n\n"
+            break
+
+        # ── Finalize AgentRun ─────────────────────────────────
+        cost = (total_tokens_in * _INPUT_COST_PER_TOKEN
+                + total_tokens_out * _OUTPUT_COST_PER_TOKEN)
+        run.status          = "completed"
+        run.final_response  = final_text or None
+        run.total_tokens_in  = total_tokens_in
+        run.total_tokens_out = total_tokens_out
+        run.total_cost_usd  = round(cost, 8)
+        run.duration_ms     = int((time.monotonic() - start_time) * 1000)
+        run.completed_at    = datetime.utcnow()
+        db.commit()
+
+    except Exception as e:
+        run.status       = "error"
+        run.error        = str(e)
+        run.duration_ms  = int((time.monotonic() - start_time) * 1000)
+        run.completed_at = datetime.utcnow()
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+        yield f"data: {json.dumps({'type': 'error', 'message': 'Interner Fehler im Agent.'})}\n\n"
 
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
