@@ -16,7 +16,14 @@ from models import (
 _INPUT_COST_PER_TOKEN  = 3.0  / 1_000_000
 _OUTPUT_COST_PER_TOKEN = 15.0 / 1_000_000
 
-client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
+_api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
+if not _api_key:
+    raise RuntimeError(
+        "Weder ANTHROPIC_API_KEY noch CLAUDE_API_KEY in der Umgebung gesetzt. "
+        "Setze einen davon in der .env (siehe .env.example)."
+    )
+
+client = Anthropic(api_key=_api_key)
 
 SYSTEM_PROMPT = (
     "Du bist der Command Center Agent. Du hast Zugriff auf das persönliche Dashboard des Users "
