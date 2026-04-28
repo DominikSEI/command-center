@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Send, Bot, User, Loader2, Zap } from 'lucide-react'
 
 const TOOL_LABELS = {
@@ -11,6 +12,18 @@ const TOOL_LABELS = {
   task_update:           'Task aktualisieren',
   idea_create:           'Idee speichern',
   note_create:           'Notiz speichern',
+}
+
+const TOOL_ROUTES = {
+  get_dashboard_status:  '/monitor',
+  get_tracker_projects:  '/tracker',
+  get_vps_metrics:       '/vps',
+  get_latest_briefing:   '/briefing',
+  tracker_todo_set_done: '/tracker',
+  task_create:           '/tasks',
+  task_update:           '/tasks',
+  idea_create:           '/ideas',
+  note_create:           '/notes',
 }
 
 const SUGGESTIONS = [
@@ -41,6 +54,7 @@ export default function AgentChat({ compact = false }) {
   const [loading, setLoading]   = useState(false)
   const bottomRef   = useRef(null)
   const textareaRef = useRef(null)
+  const navigate    = useNavigate()
 
   // Persist messages to localStorage on every change
   useEffect(() => {
@@ -191,16 +205,30 @@ export default function AgentChat({ compact = false }) {
             <div className={`flex flex-col gap-1.5 max-w-[85%] ${msg.role === 'user' ? 'items-end' : ''}`}>
               {msg.tools?.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {msg.tools.map((tool, ti) => (
-                    <span
-                      key={ti}
-                      className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md
-                                 text-purple-400 border border-purple-500/20 bg-purple-500/5"
-                    >
-                      <Zap size={8} />
-                      {TOOL_LABELS[tool] ?? tool}
-                    </span>
-                  ))}
+                  {msg.tools.map((tool, ti) => {
+                    const route = TOOL_ROUTES[tool]
+                    return route ? (
+                      <button
+                        key={ti}
+                        onClick={() => navigate(route)}
+                        className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md
+                                   text-purple-400 border border-purple-500/20 bg-purple-500/5
+                                   hover:bg-purple-500/15 hover:border-purple-500/40 transition-colors cursor-pointer"
+                      >
+                        <Zap size={8} />
+                        {TOOL_LABELS[tool] ?? tool}
+                      </button>
+                    ) : (
+                      <span
+                        key={ti}
+                        className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md
+                                   text-purple-400 border border-purple-500/20 bg-purple-500/5"
+                      >
+                        <Zap size={8} />
+                        {TOOL_LABELS[tool] ?? tool}
+                      </span>
+                    )
+                  })}
                 </div>
               )}
 
