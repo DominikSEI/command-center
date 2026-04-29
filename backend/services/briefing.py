@@ -238,32 +238,35 @@ async def run_briefing(db) -> dict:
     """
     from models import Briefing
 
-    yt_key = os.getenv("YOUTUBE_API_KEY")
-    if not yt_key:
-        raise ValueError("YOUTUBE_API_KEY nicht konfiguriert")
-
     since = datetime.now(timezone.utc) - timedelta(hours=24)
     ki_videos: list[dict]     = []
     stocks_videos: list[dict] = []
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        for handle in KI_CHANNELS:
-            cid = await _channel_id(handle, yt_key, client)
-            if not cid:
-                logger.warning(f"Kanal nicht gefunden: {handle}")
-                continue
-            vids = await _recent_videos(cid, since, yt_key, client)
-            logger.info(f"{handle} → {len(vids)} neue Videos (KI)")
-            ki_videos.extend(vids)
+    yt_key = os.getenv("YOUTUBE_API_KEY")
+    if not yt_key:
+        logger.warning("YOUTUBE_API_KEY nicht konfiguriert — YouTube-Sektionen werden übersprungen")
+    else:
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                for handle in KI_CHANNELS:
+                    cid = await _channel_id(handle, yt_key, client)
+                    if not cid:
+                        logger.warning(f"Kanal nicht gefunden: {handle}")
+                        continue
+                    vids = await _recent_videos(cid, since, yt_key, client)
+                    logger.info(f"{handle} → {len(vids)} neue Videos (KI)")
+                    ki_videos.extend(vids)
 
-        for handle in STOCKS_CHANNELS:
-            cid = await _channel_id(handle, yt_key, client)
-            if not cid:
-                logger.warning(f"Kanal nicht gefunden: {handle}")
-                continue
-            vids = await _recent_videos(cid, since, yt_key, client)
-            logger.info(f"{handle} → {len(vids)} neue Videos (Aktien)")
-            stocks_videos.extend(vids)
+                for handle in STOCKS_CHANNELS:
+                    cid = await _channel_id(handle, yt_key, client)
+                    if not cid:
+                        logger.warning(f"Kanal nicht gefunden: {handle}")
+                        continue
+                    vids = await _recent_videos(cid, since, yt_key, client)
+                    logger.info(f"{handle} → {len(vids)} neue Videos (Aktien)")
+                    stocks_videos.extend(vids)
+        except Exception as e:
+            logger.error(f"YouTube-Fetch fehlgeschlagen, fahre ohne Videos fort: {e}")
 
     all_videos = ki_videos + stocks_videos
 
