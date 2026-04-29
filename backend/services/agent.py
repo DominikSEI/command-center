@@ -28,8 +28,12 @@ client = Anthropic(api_key=_api_key)
 SYSTEM_PROMPT = (
     "Du bist der Command Center Agent mit Lese- UND Schreibzugriff auf das Dashboard. "
     "Lesende Tools: get_dashboard_status, get_tracker_projects, get_vps_metrics, get_latest_briefing. "
-    "Schreibende Tools: tracker_todo_set_done, task_create, task_update, idea_create, note_create. "
+    "Schreibende Tools: tracker_todo_set_done, tracker_todo_create, project_update, task_create, task_update, idea_create, note_create. "
     "Workflow für Schreiboperationen: erst Lese-Tool aufrufen um IDs zu ermitteln, dann Schreib-Tool. "
+    "Workflow für 'Projekt mit Daten füllen': "
+    "1. get_tracker_projects aufrufen → project_id ermitteln. "
+    "2. project_update → Beschreibung und Notizen setzen. "
+    "3. tracker_todo_create (mehrfach aufrufen) → Todos anlegen. "
     "Führe Schreiboperationen direkt aus wenn der User sie verlangt — keine Rückfrage nötig. "
     "Antworte präzise und auf Deutsch."
 )
@@ -126,6 +130,40 @@ TOOLS = [
                 "category": {"type": "string", "description": "ki_news / idee / tool / sonstiges"},
             },
             "required": ["title"],
+        },
+    },
+    {
+        "name": "project_update",
+        "description": (
+            "Aktualisiert ein Tracker-Projekt (Beschreibung, Notizen, Status, Priorität). "
+            "Erst get_tracker_projects aufrufen um die project_id zu ermitteln."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "project_id":  {"type": "integer", "description": "ID des Projekts"},
+                "description": {"type": "string"},
+                "notes":       {"type": "string"},
+                "status":      {"type": "string", "description": "idea / in_progress / review / live"},
+                "priority":    {"type": "integer", "description": "1=hoch, 2=mittel, 3=niedrig"},
+            },
+            "required": ["project_id"],
+        },
+    },
+    {
+        "name": "tracker_todo_create",
+        "description": (
+            "Legt ein neues Todo in einem Tracker-Projekt an und aktualisiert den Fortschritt. "
+            "Erst get_tracker_projects aufrufen um die project_id zu ermitteln."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "project_id": {"type": "integer", "description": "ID des Tracker-Projekts"},
+                "title":      {"type": "string",  "description": "Titel des Todos"},
+                "done":       {"type": "boolean", "description": "Standard: false"},
+            },
+            "required": ["project_id", "title"],
         },
     },
 ]
@@ -244,6 +282,43 @@ def _execute_tool(name: str, inputs: dict, db: Session) -> dict:
         db.commit()
         db.refresh(note)
         return {"success": True, "note_id": note.id, "title": note.title}
+
+    if name == "project_update":
+        project_id = inputs.get("project_id")
+        project = db.query(TrackerProject).filter(TrackerProject.id == project_id).first()
+        if not project:
+            return {"error": f"Projekt mit ID {project_id} nicht gefunden"}
+        if "description" in inputs and inputs["description"] is not None:
+            project.description = inputs["description"]
+        if "notes" in inputs and inputs["notes"] is not None:
+            project.notes = inputs["notes"]
+        if "status" in inputs and inputs["status"] in ("idea", "in_progress", "review", "live"):
+            project.status = inputs["status"]
+        if "priority" in inputs and inputs["priority"] in (1, 2, 3):
+            project.priority = inputs["priority"]
+        project.updated_at = datetime.utcnow()
+        db.commit()
+        return {"success": True, "project_id": project_id, "name": project.name}
+
+    if name == "tracker_todo_create":
+        project_id = inputs.get("project_id")
+        project = db.query(TrackerProject).filter(TrackerProject.id == project_id).first()
+        if not project:
+            return {"error": f"Projekt mit ID {project_id} nicht gefunden"}
+        todo = TrackerTodo(
+            tracker_project_id=project_id,
+            title=inputs["title"],
+            done=bool(inputs.get("done", False)),
+        )
+        db.add(todo)
+        db.commit()
+        db.refresh(todo)
+        # Recalculate progress
+        todos = db.query(TrackerTodo).filter(TrackerTodo.tracker_project_id == project_id).all()
+        project.progress_percent = round(sum(1 for t in todos if t.done) / len(todos) * 100)
+        project.updated_at = datetime.utcnow()
+        db.commit()
+        return {"success": True, "todo_id": todo.id, "title": todo.title, "project_id": project_id}
 
     return {"error": f"Unbekanntes Tool: {name}"}
 
