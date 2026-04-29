@@ -220,6 +220,7 @@ def _execute_tool(name: str, inputs: dict, db: Session) -> dict:
         for p in projects:
             todos = db.query(TrackerTodo).filter(TrackerTodo.tracker_project_id == p.id).all()
             rows.append({
+                "id": p.id,
                 "name": p.name,
                 "status": p.status,
                 "progress": p.progress_percent,
